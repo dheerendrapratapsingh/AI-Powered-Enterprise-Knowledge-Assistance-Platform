@@ -1,0 +1,37 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Variants */
+.green  { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+.green .dot  { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+.yellow { color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
+.yellow .dot { background: #fbbf24; animation: pulse 1.5s infinite; }
+
+.blue   { color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+.blue .dot   { background: #38bdf8; }
+
+.red    { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+.red .dot    { background: #f87171; }
+
+.gray   { color: var(--text-muted); background: rgba(255,255,255,0.05); }
+.gray .dot   { background: var(--text-muted); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
