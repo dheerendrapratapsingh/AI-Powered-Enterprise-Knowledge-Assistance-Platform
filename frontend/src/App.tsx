@@ -56,7 +56,7 @@ function App() {
         </Route>
         
         {/* Redirect root based on role */}
-        <Route path="/" element={<Navigate to={user.role === 'ADMIN' ? "/platform" : "/chat"} replace />} />
+        <Route path="/" element={<Navigate to={user.role === 'ADMIN' ? "/platform" : user.role === 'ORG_ADMIN' ? "/org" : "/chat"} replace />} />
       </Routes>
     </BrowserRouter>
   );

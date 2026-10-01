@@ -36,6 +36,20 @@ def seed_admin():
     else:
         print("Student user already exists.")
         
+    org_email = "org@vitap.ac.in"
+    if not db.query(User).filter(User.email == org_email).first():
+        org = User(
+            name="Org Admin",
+            email=org_email,
+            password_hash=get_password_hash("org123"),
+            role="ORG_ADMIN"
+        )
+        db.add(org)
+        db.commit()
+        print("Org user created: org@vitap.ac.in / org123")
+    else:
+        print("Org user already exists.")
+
     db.close()
 
 if __name__ == "__main__":

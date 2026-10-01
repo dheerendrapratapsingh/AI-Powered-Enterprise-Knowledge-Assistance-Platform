@@ -16,3 +16,10 @@ class ChatResponse(BaseModel):
     response_type: str
     sources: List[Source] = []
     conversation_id: str
+    message_id: str
+
+class FeedbackRequest(BaseModel):
+    message_id: str
+    rating: int
+    feedback_type: Optional[str] = None
+    comment: Optional[str] = None

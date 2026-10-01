@@ -69,7 +69,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
         <div className="credentials-hint">
           <p><strong>Demo Accounts</strong></p>
-          <p>Admin: <span>admin@vitap.ac.in</span> / <span>admin123</span></p>
+          <p>Platform Admin: <span>admin@vitap.ac.in</span> / <span>admin123</span></p>
+          <p>Org Admin: <span>org@vitap.ac.in</span> / <span>org123</span></p>
           <p>Student: <span>student@vitap.ac.in</span> / <span>student123</span></p>
         </div>
       </div>

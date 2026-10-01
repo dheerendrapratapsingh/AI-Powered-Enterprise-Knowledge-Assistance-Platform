@@ -59,5 +59,27 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_u
         answer=ai_msg.content,
         response_type=ai_msg.response_type,
         sources=sources_out,
-        conversation_id=conversation.id
+        conversation_id=conversation.id,
+        message_id=ai_msg.id
     )
+
+from app.models.feedback import Feedback
+from app.schemas.chat import FeedbackRequest
+
+@router.post("/chat/feedback")
+def submit_feedback(request: FeedbackRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Verify the message exists
+    msg = db.query(Message).filter(Message.id == request.message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    feedback = Feedback(
+        message_id=request.message_id,
+        user_id=current_user.id,
+        rating=request.rating,
+        feedback_type=request.feedback_type,
+        comment=request.comment
+    )
+    db.add(feedback)
+    db.commit()
+    return {"status": "success", "message": "Feedback recorded"}
