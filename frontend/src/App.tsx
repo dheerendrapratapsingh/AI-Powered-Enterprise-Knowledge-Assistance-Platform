@@ -1,10 +1,37 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { PlatformAdmin } from './pages/PlatformAdmin';
 import { EmployeeChat } from './pages/EmployeeChat';
 import { OrgAdmin } from './pages/OrgAdmin';
+import Login from './pages/Login';
+import { getCurrentUser } from './services/auth';
 
 function App() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+
+  if (!user) {
+    return <Login onLogin={checkAuth} />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -28,8 +55,8 @@ function App() {
           <Route index element={<EmployeeChat />} />
         </Route>
         
-        {/* Redirect root to platform admin for now */}
-        <Route path="/" element={<Navigate to="/platform" replace />} />
+        {/* Redirect root based on role */}
+        <Route path="/" element={<Navigate to={user.role === 'ADMIN' ? "/platform" : "/chat"} replace />} />
       </Routes>
     </BrowserRouter>
   );
