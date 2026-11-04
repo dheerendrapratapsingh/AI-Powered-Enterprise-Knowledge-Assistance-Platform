@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 class ChatRequest(BaseModel):
     question: str
@@ -23,3 +24,23 @@ class FeedbackRequest(BaseModel):
     rating: int
     feedback_type: Optional[str] = None
     comment: Optional[str] = None
+
+class MessageOut(BaseModel):
+    id: str
+    role: str
+    content: str
+    response_type: Optional[str] = None
+    created_at: Optional[datetime] = None
+    sources: List[Source] = []
+
+    class Config:
+        from_attributes = True
+
+class ConversationOut(BaseModel):
+    id: str
+    title: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

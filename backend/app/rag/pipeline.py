@@ -3,7 +3,7 @@ from app.rag.prompt_builder import build_prompt
 from app.rag.ollama_client import generate_response
 from app.models.user import User
 
-def answer_question(question: str, user: User) -> dict:
+def answer_question(question: str, user: User, conversation_history: list = None) -> dict:
     # 1. Retrieve chunks
     chunks = retrieve_relevant_chunks(question)
     
@@ -26,7 +26,7 @@ def answer_question(question: str, user: User) -> dict:
         }
         
     # 4. Build Context & Prompt
-    prompt = build_prompt(question, allowed_chunks)
+    prompt = build_prompt(question, allowed_chunks, conversation_history=conversation_history)
     
     # 5. Generate
     response_data = generate_response(prompt)

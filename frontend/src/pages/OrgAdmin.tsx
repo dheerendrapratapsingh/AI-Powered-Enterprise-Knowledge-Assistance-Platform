@@ -2,16 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { Database, Users, CheckCircle2, FileText, Trash2, Loader2, UploadCloud } from 'lucide-react';
 import styles from './PlatformAdmin.module.css';
 import { getDocuments, uploadDocument, deleteDocument } from '../services/admin';
+import { getOrgStats, type OrgStats } from '../services/platform';
 
 export function OrgAdmin() {
   const [documents, setDocuments] = useState<any[]>([]);
+  const [orgStats, setOrgStats] = useState<OrgStats | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocs = async () => {
     try {
-      const docs = await getDocuments();
+      const [docs, stats] = await Promise.all([
+        getDocuments(),
+        getOrgStats().catch(() => null)
+      ]);
       setDocuments(docs);
+      if (stats) setOrgStats(stats);
     } catch (err) {
       console.error("Failed to fetch documents", err);
     }
@@ -59,7 +65,7 @@ export function OrgAdmin() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Organization Dashboard</h1>
-          <p className={styles.subtitle}>Manage your organization's AI assistant</p>
+          <p className={styles.subtitle}>Manage your organization's AI assistant & knowledge</p>
         </div>
         <div className={styles.headerActions}>
           <input 
@@ -95,8 +101,8 @@ export function OrgAdmin() {
                 <Users size={24} />
               </div>
               <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>2</span>
-                <span className={styles.kpiLabel}>Active Users</span>
+                <span className={styles.kpiValue}>{orgStats?.active_users ?? 3}</span>
+                <span className={styles.kpiLabel}>Registered Members</span>
               </div>
             </div>
           </div>
@@ -106,7 +112,7 @@ export function OrgAdmin() {
                 <CheckCircle2 size={24} />
               </div>
               <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>100%</span>
+                <span className={styles.kpiValue}>{orgStats?.system_uptime ?? "100%"}</span>
                 <span className={styles.kpiLabel}>System Uptime</span>
               </div>
             </div>

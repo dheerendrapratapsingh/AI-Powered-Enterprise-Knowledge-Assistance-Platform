@@ -8,6 +8,7 @@ class Document(Base):
     __tablename__ = "documents"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
     name = Column(String, nullable=False)
     filename = Column(String, nullable=False)
     category = Column(String, nullable=True)
@@ -22,5 +23,6 @@ class Document(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    organization = relationship("Organization", back_populates="documents")
     uploader = relationship("User")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")

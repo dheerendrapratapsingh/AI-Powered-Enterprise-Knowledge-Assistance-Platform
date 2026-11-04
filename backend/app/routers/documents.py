@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
-from app.database.connection import get_db
+from app.database.connection import get_db, SessionLocal
 from app.models.user import User
 from app.models.document import Document
 from app.routers.auth import require_admin
@@ -11,39 +11,40 @@ import uuid
 
 router = APIRouter(prefix="/api/admin/documents", tags=["admin-documents"])
 
-def process_document_background(doc_id: str, file_path: str, db: Session):
+def process_document_background(doc_id: str, file_path: str):
     from app.rag.extractor import extract_text
     from app.rag.chunker import process_document_to_chunks
     from app.rag.embedder import generate_embeddings_for_chunks
     from app.rag.retriever import index_manager
     from app.models.chunk import DocumentChunk
-    
-    doc = db.query(Document).filter(Document.id == doc_id).first()
-    if not doc:
-        return
-        
+
+    db = SessionLocal()
     try:
+        doc = db.query(Document).filter(Document.id == doc_id).first()
+        if not doc:
+            return
+
         doc.status = "PROCESSING"
         db.commit()
-        
+
         pages_data = extract_text(file_path)
         doc.page_count = len(pages_data)
-        
+
         metadata_template = {
             "document_id": doc.id,
             "document_name": doc.name,
             "category": doc.category,
             "access_level": "student"
         }
-        
+
         chunks = process_document_to_chunks(pages_data, metadata_template)
         doc.chunk_count = len(chunks)
         doc.status = "INDEXING"
         db.commit()
-        
+
         embeddings = generate_embeddings_for_chunks(chunks)
         index_manager.add_chunks(chunks, embeddings)
-        
+
         for chunk in chunks:
             db_chunk = DocumentChunk(
                 document_id=doc.id,
@@ -53,14 +54,21 @@ def process_document_background(doc_id: str, file_path: str, db: Session):
                 metadata_json=chunk["metadata"]
             )
             db.add(db_chunk)
-            
+
         doc.status = "READY"
         db.commit()
-        
+
     except Exception as e:
         print(f"Error processing document {doc_id}: {e}")
-        doc.status = "FAILED"
-        db.commit()
+        try:
+            doc = db.query(Document).filter(Document.id == doc_id).first()
+            if doc:
+                doc.status = "FAILED"
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
 
 
 @router.post("/upload")
@@ -79,10 +87,10 @@ def upload_document(
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"{uuid.uuid4()}{file_ext}"
     file_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
-    
+
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
+
     doc = Document(
         name=name,
         filename=file.filename,
@@ -96,9 +104,9 @@ def upload_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
-    
-    background_tasks.add_task(process_document_background, doc.id, file_path, db)
-    
+
+    background_tasks.add_task(process_document_background, doc.id, file_path)
+
     return doc
 
 @router.get("")
@@ -110,16 +118,16 @@ def delete_document(document_id: str, db: Session = Depends(get_db), current_use
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-        
+
     try:
         from app.rag.retriever import index_manager
         # Remove from FAISS index
         index_manager.delete_document(document_id)
-        
+
         # Remove file from disk if it exists
         if doc.file_path and os.path.exists(doc.file_path):
             os.remove(doc.file_path)
-            
+
         # Remove from database (cascades to chunks)
         db.delete(doc)
         db.commit()
