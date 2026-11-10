@@ -1,4 +1,4 @@
-﻿from app.rag.embedder import generate_embedding
+from app.rag.embedder import generate_embedding
 from app.rag.index_manager import IndexManager
 from app.config import settings
 import numpy as np
@@ -7,6 +7,7 @@ import faiss
 index_manager = IndexManager()
 
 def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
+    index_manager.ensure_fresh()
     if top_k is None:
         top_k = settings.TOP_K
 

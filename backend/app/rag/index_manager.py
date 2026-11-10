@@ -11,16 +11,24 @@ class IndexManager:
         self.metadata_path = os.path.join(settings.FAISS_DIR, f"{index_name}_metadata.json")
         self.dimension = 384 # default for all-MiniLM-L6-v2
         self.index = None
-        self.metadata = []
+        self.metadata = {}
+        self._last_mtime = 0.0
         
         os.makedirs(settings.FAISS_DIR, exist_ok=True)
         self.load_index()
+
+    def ensure_fresh(self):
+        if os.path.exists(self.index_path):
+            mtime = os.path.getmtime(self.index_path)
+            if mtime > self._last_mtime:
+                self.load_index()
 
     def load_index(self):
         if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
             self.index = faiss.read_index(self.index_path)
             with open(self.metadata_path, 'r', encoding='utf-8') as f:
                 self.metadata = json.load(f)
+            self._last_mtime = os.path.getmtime(self.index_path)
         else:
             # Using IndexIDMap to allow deletion later if needed
             base_index = faiss.IndexFlatIP(self.dimension) # Inner product for cosine similarity usually
@@ -31,6 +39,8 @@ class IndexManager:
         faiss.write_index(self.index, self.index_path)
         with open(self.metadata_path, 'w', encoding='utf-8') as f:
             json.dump(self.metadata, f, ensure_ascii=False, indent=2)
+        if os.path.exists(self.index_path):
+            self._last_mtime = os.path.getmtime(self.index_path)
 
     def add_chunks(self, chunks: list, embeddings: list):
         if not chunks or not embeddings:
