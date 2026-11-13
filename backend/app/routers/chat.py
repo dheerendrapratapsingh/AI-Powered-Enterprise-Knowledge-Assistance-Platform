@@ -161,9 +161,23 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             yield f"data: {json.dumps(metadata_packet)}\n\n"
 
             if not allowed_chunks:
-                fallback_msg = "I couldn't find sufficient information about this in the available VIT-AP knowledge base. Please check the relevant official documents."
-                yield f"data: {json.dumps({'type': 'token', 'token': fallback_msg})}\n\n"
-                full_answer = fallback_msg
+                q_lower = question.lower()
+                is_email = any(k in q_lower for k in [
+                    "draft an email", "compose an email", "write an email", 
+                    "draft email", "compose email", "write email", "send an email",
+                    "email template", "mail template", "draft a mail", "compose a mail"
+                ])
+                if not is_email:
+                    fallback_msg = "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+                    yield f"data: {json.dumps({'type': 'token', 'token': fallback_msg})}\n\n"
+                    full_answer = fallback_msg
+                else:
+                    prompt = build_streaming_prompt(question, [], conversation_history=history)
+                    collected_tokens = []
+                    for token in stream_response_tokens(prompt):
+                        collected_tokens.append(token)
+                        yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                    full_answer = "".join(collected_tokens)
             else:
                 # 3. Build streaming prompt & stream tokens
                 prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history)
