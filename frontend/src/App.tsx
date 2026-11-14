@@ -26,7 +26,7 @@ function App() {
     }
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#fff' }}>Loading platform...</div>;
 
   if (!user) {
     return <Login onLogin={checkAuth} />;
@@ -45,18 +45,20 @@ function App() {
         {/* Organization Admin Routes */}
         <Route path="/org" element={<MainLayout role="org" />}>
           <Route index element={<OrgAdmin />} />
-          <Route path="knowledge" element={<div>Knowledge Base (Coming Soon)</div>} />
+          <Route path="knowledge" element={<OrgAdmin />} />
           <Route path="users" element={<div>Users & Roles (Coming Soon)</div>} />
           <Route path="ai-config" element={<div>AI Configuration (Coming Soon)</div>} />
         </Route>
 
-        {/* Employee Routes */}
+        {/* Employee / Student Routes */}
         <Route path="/chat" element={<MainLayout role="employee" />}>
           <Route index element={<EmployeeChat />} />
         </Route>
+        <Route path="/search" element={<Navigate to="/chat" replace />} />
         
         {/* Redirect root based on role */}
         <Route path="/" element={<Navigate to={user.role === 'ADMIN' ? "/platform" : user.role === 'ORG_ADMIN' ? "/org" : "/chat"} replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

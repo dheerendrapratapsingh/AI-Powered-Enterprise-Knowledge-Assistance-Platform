@@ -418,3 +418,68 @@
   color: var(--brand-accent);
   border-color: rgba(255, 255, 255, 0.1);
 }
+
+.markdownBody {
+  line-height: 1.7;
+  color: #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.markdownBody p {
+  margin: 0 0 12px 0;
+}
+
+.markdownBody p:last-child {
+  margin-bottom: 0;
+}
+
+.markdownBody ul, 
+.markdownBody ol {
+  margin: 8px 0 16px 22px;
+  padding: 0;
+}
+
+.markdownBody li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.markdownBody strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.markdownBody h1, 
+.markdownBody h2, 
+.markdownBody h3, 
+.markdownBody h4 {
+  color: #ffffff;
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+}
+
+.markdownBody code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.markdownBody table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 14px 0;
+}
+
+.markdownBody th, 
+.markdownBody td {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdownBody th {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}

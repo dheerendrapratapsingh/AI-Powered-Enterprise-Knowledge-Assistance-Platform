@@ -3,7 +3,17 @@ from app.rag.prompt_builder import build_prompt
 from app.rag.ollama_client import generate_response
 from app.models.user import User
 
-def answer_question(question: str, user: User) -> dict:
+FALLBACK_MESSAGE = "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+
+def is_draft_email_intent(question: str) -> bool:
+    q_lower = question.lower()
+    return any(k in q_lower for k in [
+        "draft an email", "compose an email", "write an email", 
+        "draft email", "compose email", "write email", "send an email",
+        "email template", "mail template", "draft a mail", "compose a mail"
+    ])
+
+def answer_question(question: str, user: User, conversation_history: list = None) -> dict:
     # 1. Retrieve chunks
     chunks = retrieve_relevant_chunks(question)
     
@@ -17,16 +27,17 @@ def answer_question(question: str, user: User) -> dict:
         
     # 3. Handle low confidence or no results
     if not allowed_chunks:
-        return {
-            "answer": "I couldn't find sufficient information about this in the available VIT-AP knowledge base. Please check the relevant official documents.",
-            "response_type": "insufficient_information",
-            "sources": [],
-            "retrieved_chunks": [],
-            "confidence": 0.0
-        }
+        if not is_draft_email_intent(question):
+            return {
+                "answer": FALLBACK_MESSAGE,
+                "response_type": "insufficient_information",
+                "sources": [],
+                "retrieved_chunks": [],
+                "confidence": 0.0
+            }
         
     # 4. Build Context & Prompt
-    prompt = build_prompt(question, allowed_chunks)
+    prompt = build_prompt(question, allowed_chunks, conversation_history=conversation_history)
     
     # 5. Generate
     response_data = generate_response(prompt)

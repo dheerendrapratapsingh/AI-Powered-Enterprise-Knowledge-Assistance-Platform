@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
+    container_name: copilot_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -11,6 +12,43 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: copilot_backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/vitap_copilot
+      - JWT_SECRET=your_production_jwt_secret_key_here
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:3b
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - TOP_K=5
+      - SIMILARITY_THRESHOLD=0.35
+      - UPLOAD_DIR=./data/documents
+      - FAISS_DIR=./data/indexes
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - db
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: copilot_frontend
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
     restart: always
 
 volumes:
