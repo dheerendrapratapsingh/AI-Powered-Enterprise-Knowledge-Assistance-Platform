@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-11-13T10:33:01Z",
+  "total_test_cases": 8,
+  "metrics": {
+    "naive_baseline": {
+      "context_precision": 0.5,
+      "context_recall": 0.487,
+      "faithfulness": 0.738,
+      "cross_degree_contamination": 0.25,
+      "avg_retrieval_latency_ms": 34.49
+    },
+    "proposed_system": {
+      "context_precision": 0.5,
+      "context_recall": 0.479,
+      "faithfulness": 1.0,
+      "cross_degree_contamination": 0.125,
+      "avg_retrieval_latency_ms": 19.18
+    }
+  }
+}

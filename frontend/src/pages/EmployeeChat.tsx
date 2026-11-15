@@ -210,21 +210,29 @@ export function EmployeeChat() {
               <p className={styles.welcomeSubtitle}>How can I assist you with VIT-AP knowledge today?</p>
               
               <div className={styles.quickActions}>
-                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What are the Sunday outing rules and return timings?")}>
-                  <span className={styles.actionIcon}>🏖️</span>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("Draft a formal email to my School Dean requesting permission for an academic event leave.")}>
+                  <span className={styles.actionIcon}>✉️</span>
+                  <span className={styles.actionText}>Draft Email to Dean</span>
+                </button>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What are all the compulsory Programme Core courses for B.Tech CSE Core?")}>
+                  <span className={styles.actionIcon}>📚</span>
+                  <span className={styles.actionText}>B.Tech CSE Core</span>
+                </button>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("Where is Dr. Hari Seetha's cabin and what is her department and designation?")}>
+                  <span className={styles.actionIcon}>📍</span>
+                  <span className={styles.actionText}>Find Faculty Cabin</span>
+                </button>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What are the Sunday outing rules, return timings, and extra 3-hour extension procedure?")}>
+                  <span className={styles.actionIcon}>🏠</span>
                   <span className={styles.actionText}>Hostel Outing Rules</span>
                 </button>
-                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("How do I apply for General Leave on VTOP?")}>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("Draft a polite email to my Course Coordinator requesting clarification on syllabus and attendance.")}>
                   <span className={styles.actionIcon}>📝</span>
-                  <span className={styles.actionText}>General Leave Process</span>
+                  <span className={styles.actionText}>Draft Email to Coordinator</span>
                 </button>
-                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What is the complaint processing and escalation mechanism?")}>
-                  <span className={styles.actionIcon}>📢</span>
-                  <span className={styles.actionText}>Escalation Mechanism</span>
-                </button>
-                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What is the night attendance policy in hostel rooms?")}>
-                  <span className={styles.actionIcon}>🚪</span>
-                  <span className={styles.actionText}>Night Attendance</span>
+                <button className={`glass-panel ${styles.actionButton}`} onClick={() => setQuery("What are the Programme Core courses for B.Tech CSBS?")}>
+                  <span className={styles.actionIcon}>💼</span>
+                  <span className={styles.actionText}>B.Tech CSBS Courses</span>
                 </button>
               </div>
             </div>

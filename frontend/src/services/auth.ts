@@ -1,5 +1,13 @@
 import { fetchWithAuth, API_URL } from "./api";
 
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+  student_id?: string;
+}
+
 export async function login(email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
@@ -17,17 +25,17 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-export async function register(userData: {
-  name: string;
-  email: string;
-  password: string;
-  student_id?: string;
-  role?: string;
-}) {
+export async function register(data: RegisterData) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData)
+    body: JSON.stringify({
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      role: data.role || "STUDENT",
+      student_id: data.student_id || null
+    })
   });
 
   if (!response.ok) {
@@ -35,8 +43,8 @@ export async function register(userData: {
     throw new Error(error.detail || "Registration failed");
   }
 
-  // Auto-login after registration
-  return login(userData.email, userData.password);
+  // Automatically sign in upon successful registration
+  return login(data.email, data.password);
 }
 
 export async function getCurrentUser() {

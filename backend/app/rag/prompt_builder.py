@@ -1,4 +1,4 @@
-﻿def build_prompt(question: str, context_chunks: list, conversation_history: list = None) -> str:
+def build_prompt(question: str, context_chunks: list, conversation_history: list = None) -> str:
     context_text = "\n\n".join([
         f"Source: {c.get('metadata', {}).get('document_name', 'Unknown')} | Category: {c.get('metadata', {}).get('category', 'General')}\n{c.get('text', '')}" 
         for c in context_chunks
@@ -28,10 +28,20 @@ Rules:
    - The provided Context takes 100% precedence over previous conversation history. Disregard any contradictory past messages.
 4. Code-Title Accuracy:
    - Strictly report exact course codes paired with their exact titles and credits as printed in the Context.
-5. Presentation:
+5. Strict Anti-Hallucination & Fallback:
+   - Never invent, guess, or assume any information that is not explicitly confirmed in the Context.
+   - If the requested course, policy, person, or data is NOT found in the provided Context, state clearly:
+     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+6. Email Drafting Capability:
+   - If the user asks to compose, draft, or write an email (e.g., to a dean, professor, course coordinator, or hostel warden), generate a well-structured, professional email draft:
+     - **Subject:** [Clear, formal subject line]
+     - **To:** [Faculty/Office name or email from context, or placeholder]
+     - **Body:** [Polite, academic tone addressing the user's specific request with appropriate placeholders for student details]
+     - **Sign-off:** [Respectful closing with student signature block]
+7. Presentation:
    - For course lists: list each course on its own bullet line:
      - **CODE**: Course Title (Credits)
-6. You must respond in valid JSON format matching the schema provided.
+8. You must respond in valid JSON format matching the schema provided.
 
 Context:
 {context_text}
@@ -83,10 +93,20 @@ Rules:
    - Strictly report exact course codes with their printed titles and credits. Never invent or swap codes.
 4. Ground Truth Authority:
    - The provided Context takes 100% precedence over previous conversation history. Disregard any incorrect prior messages.
-5. Presentation:
+5. Strict Anti-Hallucination & Fallback:
+   - Never invent, guess, or hallucinate policies, course codes, or faculty details.
+   - If the requested information is absent or not verified in the provided Context, state explicitly:
+     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+6. Email Drafting Capability:
+   - If the student asks to draft, write, or compose an email (e.g., to a dean, professor, coordinator, or warden), generate a polite, professional email draft in Markdown with:
+     - **Subject:** [Concise and formal]
+     - **To:** [Faculty or Office name/email from Context, or placeholder]
+     - **Body:** [Polite academic message structured into clear paragraphs]
+     - **Sign-off:** [Respectful closing with placeholders for student name and reg. no.]
+7. Presentation:
    - For course lists: list each course on its own bullet line:
      - **CODE**: Course Title (Credits)
-6. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
+8. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
 
 Context:
 {context_text}

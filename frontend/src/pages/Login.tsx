@@ -2,51 +2,85 @@ import React, { useState } from 'react';
 import { login, register } from '../services/auth';
 import './Login.css';
 
+type RoleType = 'STUDENT' | 'ORG_ADMIN' | 'ADMIN';
+
 export default function Login({ onLogin }: { onLogin: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<RoleType>('STUDENT');
+
+  // Form fields
   const [name, setName] = useState('');
-  const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('STUDENT');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleRoleSelect = (role: RoleType) => {
+    setSelectedRole(role);
+    setError('');
+    if (role === 'STUDENT' && !email.includes('@')) {
+      setEmail('');
+    }
+  };
+
+  const fillDemoAccount = (demoRole: RoleType, demoEmail: string, demoPass: string) => {
+    setSelectedRole(demoRole);
+    setIsSignUp(false);
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError('');
+    setSuccess('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       if (isSignUp) {
+        if (!name.trim()) {
+          throw new Error('Please enter your full name');
+        }
+        if (password.length < 6) {
+          throw new Error('Password must be at least 6 characters long');
+        }
+        if (password !== confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
+
         await register({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
           password,
-          student_id: studentId || undefined,
-          role
+          role: selectedRole,
+          student_id: selectedRole === 'STUDENT' ? studentId.trim() : undefined
         });
+
+        setSuccess('Account created successfully! Logging you in...');
+        setTimeout(() => {
+          onLogin();
+        }, 800);
       } else {
-        await login(email, password);
+        await login(email.trim().toLowerCase(), password);
+        onLogin();
       }
-      onLogin();
     } catch (err: any) {
-      setError(err.message || (isSignUp ? 'Registration failed' : 'Login failed'));
+      setError(err.message || (isSignUp ? 'Failed to create account' : 'Failed to login'));
     } finally {
       setLoading(false);
     }
   };
 
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setIsSignUp(false);
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
-  };
-
   return (
     <div className="login-container">
       <div className="glass-card">
+        {/* Branding Header */}
         <div className="logo-container">
           <div className="logo-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -57,55 +91,57 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           <p className="subtitle">Enterprise Knowledge Assistance Platform</p>
         </div>
 
-        {/* Tab Toggle: Sign In vs Sign Up */}
-        <div style={{
-          display: 'flex',
-          background: 'rgba(15, 23, 42, 0.6)',
-          borderRadius: 12,
-          padding: 4,
-          marginBottom: '1.5rem',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <button
+        {/* Role Portal Selection Tabs */}
+        <div className="role-selector">
+          <button 
             type="button"
-            onClick={() => { setIsSignUp(false); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
-              border: 'none',
-              background: !isSignUp ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-              color: !isSignUp ? '#fff' : '#94a3b8',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
+            className={`role-tab ${selectedRole === 'STUDENT' ? 'active' : ''}`}
+            onClick={() => handleRoleSelect('STUDENT')}
           >
-            Sign In
+            <span className="role-icon">🎓</span>
+            <span className="role-text">Student</span>
           </button>
-          <button
+          <button 
             type="button"
-            onClick={() => { setIsSignUp(true); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
-              border: 'none',
-              background: isSignUp ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-              color: isSignUp ? '#fff' : '#94a3b8',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
+            className={`role-tab ${selectedRole === 'ORG_ADMIN' ? 'active' : ''}`}
+            onClick={() => handleRoleSelect('ORG_ADMIN')}
           >
-            Sign Up
+            <span className="role-icon">🏫</span>
+            <span className="role-text">Org Admin</span>
+          </button>
+          <button 
+            type="button"
+            className={`role-tab ${selectedRole === 'ADMIN' ? 'active' : ''}`}
+            onClick={() => handleRoleSelect('ADMIN')}
+          >
+            <span className="role-icon">⚙️</span>
+            <span className="role-text">Platform Admin</span>
           </button>
         </div>
 
-        {error && <div className="error-banner">{error}</div>}
+        {/* Sign In vs Sign Up Toggle */}
+        <div className="auth-mode-toggle">
+          <button 
+            type="button"
+            className={`mode-btn ${!isSignUp ? 'active' : ''}`}
+            onClick={() => { setIsSignUp(false); setError(''); setSuccess(''); }}
+          >
+            Sign In
+          </button>
+          <button 
+            type="button"
+            className={`mode-btn ${isSignUp ? 'active' : ''}`}
+            onClick={() => { setIsSignUp(true); setError(''); setSuccess(''); }}
+          >
+            Create Account
+          </button>
+        </div>
 
+        {/* Status Alerts */}
+        {error && <div className="error-banner">{error}</div>}
+        {success && <div className="success-banner">{success}</div>}
+
+        {/* Authentication Form */}
         <form onSubmit={handleSubmit}>
           {isSignUp && (
             <>
@@ -121,41 +157,31 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Registration Number</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  value={studentId} 
-                  onChange={e => setStudentId(e.target.value)} 
-                  placeholder="e.g. 22BCE1024"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Account Role</label>
-                <select
-                  className="form-input"
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <option value="STUDENT" style={{ background: '#1e1b4b', color: '#fff' }}>🎓 Student</option>
-                  <option value="ORG_ADMIN" style={{ background: '#1e1b4b', color: '#fff' }}>🏫 Organization Admin</option>
-                  <option value="ADMIN" style={{ background: '#1e1b4b', color: '#fff' }}>⚙️ Platform Admin</option>
-                </select>
-              </div>
+              {selectedRole === 'STUDENT' && (
+                <div className="form-group">
+                  <label className="form-label">Registration / Student ID</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    value={studentId} 
+                    onChange={e => setStudentId(e.target.value)} 
+                    placeholder="e.g. 22BCE1024"
+                  />
+                </div>
+              )}
             </>
           )}
 
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label">
+              {selectedRole === 'STUDENT' ? 'Student Email' : 'Institutional Email'}
+            </label>
             <input 
               type="email" 
               className="form-input"
               value={email} 
               onChange={e => setEmail(e.target.value)} 
-              placeholder="name@vitap.ac.in"
+              placeholder={selectedRole === 'STUDENT' ? 'name.reg@vitapstudent.ac.in' : 'admin@vitap.ac.in'}
               required 
             />
           </div>
@@ -171,57 +197,50 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               required 
             />
           </div>
+
+          {isSignUp && (
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input 
+                type="password" 
+                className="form-input"
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                placeholder="••••••••"
+                required 
+              />
+            </div>
+          )}
           
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? (isSignUp ? 'Creating Account...' : 'Authenticating...') : (isSignUp ? 'Create Student Account' : 'Sign In')}
+            {loading 
+              ? (isSignUp ? 'Creating Account...' : 'Authenticating...') 
+              : (isSignUp ? `Register as ${selectedRole === 'STUDENT' ? 'Student' : selectedRole === 'ORG_ADMIN' ? 'Org Admin' : 'Admin'}` : 'Sign In')}
           </button>
         </form>
 
+        {/* Demo Credentials Quick-Select */}
         <div className="credentials-hint">
-          <p style={{ fontWeight: 600, color: '#cbd5e1', marginBottom: 6 }}>Quick Demo Login (Click to Fill)</p>
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('student@vitap.ac.in', 'student123')}
-              style={{
-                background: 'rgba(99, 102, 241, 0.2)',
-                border: '1px solid rgba(99, 102, 241, 0.4)',
-                color: '#a5b4fc',
-                borderRadius: 6,
-                padding: '4px 8px',
-                fontSize: '0.75rem',
-                cursor: 'pointer'
-              }}
+          <p><strong>Quick Demo Access (Click to Fill):</strong></p>
+          <div className="demo-accounts-grid">
+            <button 
+              type="button" 
+              className="demo-pill"
+              onClick={() => fillDemoAccount('STUDENT', 'student@vitap.ac.in', 'student123')}
             >
-              🎓 Student
+              🎓 Student Demo
             </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('org@vitap.ac.in', 'org123')}
-              style={{
-                background: 'rgba(168, 85, 247, 0.2)',
-                border: '1px solid rgba(168, 85, 247, 0.4)',
-                color: '#d8b4fe',
-                borderRadius: 6,
-                padding: '4px 8px',
-                fontSize: '0.75rem',
-                cursor: 'pointer'
-              }}
+            <button 
+              type="button" 
+              className="demo-pill"
+              onClick={() => fillDemoAccount('ORG_ADMIN', 'org@vitap.ac.in', 'org123')}
             >
-              🏫 Org Admin
+              🏫 Org Admin Demo
             </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('admin@vitap.ac.in', 'admin123')}
-              style={{
-                background: 'rgba(236, 72, 153, 0.2)',
-                border: '1px solid rgba(236, 72, 153, 0.4)',
-                color: '#f472b6',
-                borderRadius: 6,
-                padding: '4px 8px',
-                fontSize: '0.75rem',
-                cursor: 'pointer'
-              }}
+            <button 
+              type="button" 
+              className="demo-pill"
+              onClick={() => fillDemoAccount('ADMIN', 'admin@vitap.ac.in', 'admin123')}
             >
               ⚙️ Platform Admin
             </button>
