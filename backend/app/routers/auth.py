@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from app.database.connection import get_db
 from app.models.user import User
+from app.models.organization import Organization
 from app.schemas.auth import UserCreate, UserLogin, Token, UserOut
 from app.utils.security import verify_password, get_password_hash, create_access_token, ALGORITHM
 from app.config import settings
@@ -51,13 +52,23 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    org_id = user_in.organization_id
+    if not org_id and "@" in user_in.email:
+        domain = user_in.email.split("@")[1].lower()
+        matched_org = db.query(Organization).filter(Organization.domain == domain).first()
+        if not matched_org:
+            matched_org = db.query(Organization).filter(Organization.slug == "vitap").first()
+        if matched_org:
+            org_id = matched_org.id
+
     hashed_password = get_password_hash(user_in.password)
     new_user = User(
         name=user_in.name,
         email=user_in.email,
         password_hash=hashed_password,
-        role=user_in.role,
-        student_id=user_in.student_id
+        role=user_in.role or "STUDENT",
+        student_id=user_in.student_id,
+        organization_id=org_id
     )
     db.add(new_user)
     db.commit()

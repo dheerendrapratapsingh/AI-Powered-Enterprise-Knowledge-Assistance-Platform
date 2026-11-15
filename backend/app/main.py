@@ -10,6 +10,7 @@ import app.models.document
 import app.models.conversation
 import app.models.message
 import app.models.feedback
+import app.models.cache
 
 from app.database.connection import engine
 from app.database.base import Base
@@ -19,17 +20,22 @@ Base.metadata.create_all(bind=engine)
 
 # Ensure organization_id columns exist on legacy tables
 def apply_light_migrations():
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN organization_id VARCHAR"))
-            conn.commit()
-        except Exception:
-            pass
-        try:
-            conn.execute(text("ALTER TABLE documents ADD COLUMN organization_id VARCHAR"))
-            conn.commit()
-        except Exception:
-            pass
+    try:
+        with engine.connect() as conn:
+            cols_user = [row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+            if "organization_id" not in cols_user:
+                conn.execute(text("ALTER TABLE users ADD COLUMN organization_id VARCHAR"))
+                conn.commit()
+
+            cols_doc = [row[1] for row in conn.execute(text("PRAGMA table_info(documents)")).fetchall()]
+            if "organization_id" not in cols_doc:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN organization_id VARCHAR"))
+                conn.commit()
+            if "access_level" not in cols_doc:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN access_level VARCHAR DEFAULT 'STUDENT'"))
+                conn.commit()
+    except Exception:
+        pass
 
 apply_light_migrations()
 

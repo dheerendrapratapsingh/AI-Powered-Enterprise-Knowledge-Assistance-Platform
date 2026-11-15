@@ -22,7 +22,8 @@ from app.routers.auth import get_current_user
 from app.rag.pipeline import answer_question
 from app.rag.retriever import retrieve_relevant_chunks
 from app.rag.prompt_builder import build_streaming_prompt
-from app.rag.ollama_client import stream_response_tokens
+from app.rag.llm_client import stream_response_tokens
+from app.rag.cache import get_cached_response, set_cached_response
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -52,6 +53,35 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_u
     user_msg = Message(conversation_id=conversation.id, role="user", content=request.question)
     db.add(user_msg)
     
+    # 1. Check Semantic Cache
+    cached = get_cached_response(request.question, organization_id=current_user.organization_id)
+    if cached:
+        ai_msg = Message(
+            conversation_id=conversation.id,
+            role="assistant",
+            content=cached["answer"],
+            response_type=cached.get("response_type", "answer")
+        )
+        db.add(ai_msg)
+        db.commit()
+        db.refresh(ai_msg)
+        
+        sources_out = [
+            Source(
+                document_id=s.get("document_id", ""),
+                document_name=s.get("document_name", "Unknown"),
+                page=s.get("page")
+            )
+            for s in cached.get("sources", [])
+        ]
+        return ChatResponse(
+            answer=ai_msg.content,
+            response_type=ai_msg.response_type,
+            sources=sources_out,
+            conversation_id=conversation.id,
+            message_id=ai_msg.id
+        )
+
     rag_result = answer_question(request.question, current_user, conversation_history=history)
     
     ai_msg = Message(
@@ -78,6 +108,15 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_u
             page=s.get("page")
         ))
     db.commit()
+
+    if rag_result.get("response_type") == "answer":
+        set_cached_response(
+            request.question,
+            ai_msg.content,
+            rag_result.get("sources", []),
+            response_type="answer",
+            organization_id=current_user.organization_id
+        )
     
     return ChatResponse(
         answer=ai_msg.content,
@@ -117,6 +156,40 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             db.add(user_msg)
             db.commit()
 
+            # 1. Check Semantic Cache
+            cached = get_cached_response(question, organization_id=current_user.organization_id)
+            if cached:
+                ai_message_id = str(uuid.uuid4())
+                metadata_packet = {
+                    "type": "metadata",
+                    "conversation_id": conv.id,
+                    "message_id": ai_message_id,
+                    "sources": cached.get("sources", [])
+                }
+                yield f"data: {json.dumps(metadata_packet)}\n\n"
+
+                cached_answer = cached.get("answer", "")
+                yield f"data: {json.dumps({'type': 'token', 'token': cached_answer})}\n\n"
+
+                ai_msg = Message(
+                    id=ai_message_id,
+                    conversation_id=conv.id,
+                    role="assistant",
+                    content=cached_answer,
+                    response_type=cached.get("response_type", "answer")
+                )
+                db.add(ai_msg)
+                for s in cached.get("sources", []):
+                    src = MessageSource(
+                        message_id=ai_msg.id,
+                        document_id=s.get("document_id") or None,
+                        page_number=s.get("page")
+                    )
+                    db.add(src)
+                db.commit()
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
+
             # Retrieve prior dialogue history
             history = []
             prev_msgs = db.query(Message).filter(
@@ -129,8 +202,8 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             chunks = retrieve_relevant_chunks(question)
             allowed_chunks = []
             for c in chunks:
-                access = c.get("metadata", {}).get("access_level", "student")
-                if user_role == "STUDENT" and access != "student":
+                access = str(c.get("metadata", {}).get("access_level", "student")).lower()
+                if user_role.lower() == "student" and access not in ["student", "all"]:
                     continue
                 allowed_chunks.append(c)
 
@@ -191,6 +264,16 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                 )
                 db.add(src)
             db.commit()
+
+            # 5. Populate cache for valid answers
+            if allowed_chunks and full_answer and not full_answer.startswith("I couldn't find sufficient"):
+                set_cached_response(
+                    question,
+                    full_answer,
+                    sources_list,
+                    response_type="answer",
+                    organization_id=current_user.organization_id
+                )
 
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
 

@@ -7,6 +7,7 @@ class UserCreate(BaseModel):
     password: str
     role: str = "STUDENT"
     student_id: Optional[str] = None
+    organization_id: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -22,6 +23,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     student_id: Optional[str]
+    organization_id: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -5,3 +5,4 @@ from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message, MessageSource
 from app.models.feedback import Feedback
+from app.models.cache import ResponseCache

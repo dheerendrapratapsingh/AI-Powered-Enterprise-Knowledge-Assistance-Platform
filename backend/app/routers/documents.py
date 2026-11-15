@@ -34,7 +34,7 @@ def process_document_background(doc_id: str, file_path: str):
             "document_id": doc.id,
             "document_name": doc.name,
             "category": doc.category,
-            "access_level": "student"
+            "access_level": doc.access_level or "STUDENT"
         }
 
         chunks = process_document_to_chunks(pages_data, metadata_template)
@@ -79,6 +79,7 @@ def upload_document(
     department: str = Form(None),
     source_type: str = Form(None),
     version: str = Form(None),
+    access_level: str = Form("STUDENT"),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -98,6 +99,7 @@ def upload_document(
         department=department,
         source_type=source_type,
         version=version,
+        access_level=access_level,
         file_path=file_path,
         uploaded_by=current_user.id
     )

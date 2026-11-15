@@ -1,17 +1,18 @@
 from app.rag.retriever import retrieve_relevant_chunks
 from app.rag.prompt_builder import build_prompt
-from app.rag.ollama_client import generate_response
+from app.rag.llm_client import generate_response
 from app.models.user import User
 
 def answer_question(question: str, user: User, conversation_history: list = None) -> dict:
     # 1. Retrieve chunks
     chunks = retrieve_relevant_chunks(question)
     
-    # 2. Filter by role access
+    # 2. Filter by role access (RBAC)
     allowed_chunks = []
+    user_role = (user.role or "STUDENT").upper()
     for c in chunks:
-        access = c.get("metadata", {}).get("access_level", "student")
-        if user.role == "STUDENT" and access != "student":
+        access = str(c.get("metadata", {}).get("access_level", "student")).lower()
+        if user_role == "STUDENT" and access not in ["student", "all"]:
             continue
         allowed_chunks.append(c)
         

@@ -15,6 +15,7 @@ class Document(Base):
     department = Column(String, nullable=True)
     source_type = Column(String, nullable=True)
     version = Column(String, nullable=True)
+    access_level = Column(String, default="STUDENT") # STUDENT, FACULTY, ADMIN
     file_path = Column(String, nullable=False)
     status = Column(String, default="UPLOADED") # UPLOADED, PROCESSING, INDEXING, READY, FAILED
     uploaded_by = Column(String, ForeignKey("users.id"))
