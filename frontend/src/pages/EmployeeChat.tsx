@@ -20,7 +20,8 @@ import {
   X,
   ArrowUpRight,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import { AI3DOrb } from '../components/AI3DOrb';
 import styles from './EmployeeChat.module.css';
@@ -39,7 +40,9 @@ interface SourceItem {
   document_id?: string;
   document_name?: string;
   page?: number;
-  metadata?: { filename?: string };
+  source_url?: string;
+  source_type?: string;
+  metadata?: { filename?: string; source_url?: string; source_type?: string };
 }
 
 interface ChatMessage {
@@ -636,6 +639,26 @@ export function EmployeeChat() {
                                 {msg.sources.map((src, sIdx) => {
                                   const name = src.document_name || src.metadata?.filename || 'Official Document';
                                   const pageStr = src.page ? ` • p. ${src.page}` : '';
+                                  const webUrl = src.source_url || (src.metadata && src.metadata.source_url);
+                                  const isWeb = webUrl && webUrl.startsWith('http');
+
+                                  if (isWeb) {
+                                    return (
+                                      <a
+                                        key={sIdx}
+                                        href={webUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={styles.sourcePill}
+                                        title={`Open Official Web Source: ${webUrl}`}
+                                        style={{ textDecoration: 'none', cursor: 'pointer' }}
+                                      >
+                                        <ExternalLink size={12} color="var(--accent-cyan)" />
+                                        <span>{name}</span>
+                                      </a>
+                                    );
+                                  }
+
                                   return (
                                     <div key={sIdx} className={styles.sourcePill} title={`Document: ${name}`}>
                                       <FileText size={12} color="var(--accent-cyan)" />

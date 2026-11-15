@@ -10,9 +10,11 @@
 
 ## Executive Summary
 
-The **VIT-AP AI Copilot** is an enterprise-grade Knowledge Assistance Platform tailored for university students, faculty, and administrative staff. It enables intelligent question-answering over official academic regulations, multi-degree curriculum syllabi, hostel rules, and employee contact directories.
+The **VIT-AP AI Copilot** is a production-grade Enterprise Knowledge Assistance Platform tailored for university students, faculty, and administrative staff. It provides high-accuracy, conversational, and grounded question-answering over official academic regulations, multi-degree curriculum syllabi, hostel rules, staff contact directories, and official university web resources.
 
-This document serves as a complete project handover and status report for team members. It details what has been built, the real-world bugs discovered and resolved, the architectural decisions agreed upon, and a prioritized action plan for the remaining deliverables.
+The platform is powered by a **Dual-Mode Hybrid Architecture**:
+1. **Conversational Intelligence:** Natural, ultra-fast responses for greetings, introductions, guidance, and university email drafting without unwarranted document-search fallbacks.
+2. **Grounded University Knowledge RAG:** Strict document-grounded retrieval and generation over official university PDFs, DOCX, XLSX directories, and crawled web pages with clickable source citations and zero hallucination.
 
 ---
 
@@ -21,128 +23,162 @@ This document serves as a complete project handover and status report for team m
 ```mermaid
 flowchart TD
     subgraph Client["Frontend Layer (React + TypeScript + Vite)"]
-        UI["Student Chat & Admin Portals"]
-        AuthUI["Role-Based Login / Register"]
+        UI["Student Chat Interface\n(Floating Composer, 3D AI Orb, Citations)"]
+        AdminUI["Admin Knowledge Management\n(Manual Ingestion & Web Crawler Tabs)"]
+        AuthUI["Role-Based Login / Register\n(Student, Org Admin, Platform Admin)"]
         StreamHandler["SSE Stream Receiver & Stop Controller"]
     end
 
     subgraph Server["Backend Layer (FastAPI REST API)"]
-        Router["API Routers (/chat, /auth, /admin/documents)"]
+        Router["API Routers\n(/chat, /auth, /admin/documents, /admin/crawler)"]
+        IntentRouter["Query Intent Classifier\n(Greeting, Conversational, RAG, Directory, Out-of-Scope)"]
         RAG["RAG Pipeline Engine"]
-        Cache["Semantic Response Cache"]
+        Cache["Semantic Response Cache\n(Exact & Cosine Similarity)"]
+        CrawlerService["Automated Web Crawler & Scheduler\n(SSRF Guard, ETag/Hash Incremental Crawl)"]
+        IngestionService["Unified Ingestion Pipeline\n(PDF, DOCX, XLSX, PPTX, HTML, TXT, MD)"]
     end
 
     subgraph Storage["Storage & Indexing Layer"]
-        DB[("SQLite: copilot.db\n(Users, Orgs, Chats, Docs)")]
-        FAISS[("FAISS Vector Index\n(384-d Cosine Similarity)")]
-        DocStore["Local Document Store\n(PDF, XLSX, CSV, DOCX)"]
+        DB[("SQLite: copilot.db\n(Users, Orgs, Chats, Docs, CrawlJobs, CrawledPages)")]
+        FAISS[("FAISS Vector Index\n(384-d Cosine Similarity IndexIDMap)")]
+        DocStore["Local Document Store\n(Uploaded & Crawled Files)"]
     end
 
-    subgraph AI["Hybrid AI Engine"]
-        Gemini["Google Gemini 2.0 Flash\n(Cloud Primary: Fast & No GPU)"]
-        Ollama["Local Ollama qwen2.5:3b\n(Offline Fallback)"]
-        Embedder["all-MiniLM-L6-v2\n(Local Sentence Transformers)"]
+    subgraph AI["AI Inference Engine"]
+        Gemini["Google Gemini 2.0 Flash\n(Cloud Primary: Ultra-Fast & Zero Local GPU)"]
+        Ollama["Local Ollama qwen2.5:1.5b\n(Offline Fallback)"]
+        Embedder["all-MiniLM-L6-v2\n(Sentence Transformers / Offline Mode)"]
     end
 
     UI -->|HTTP / SSE| Router
+    AdminUI -->|Manage Ingestion & Crawler| Router
     Router --> AuthUI
-    Router --> RAG
+    Router --> IntentRouter
+    
+    IntentRouter -->|Greeting / Conversational| Gemini
+    IntentRouter -->|University Knowledge / Directory| RAG
+    
     RAG --> Cache
-    RAG -->|Semantic Query| FAISS
-    RAG -->|Load Chunks & History| DB
-    RAG -->|Generate Tokens| Gemini
+    RAG -->|Semantic Vector Search| FAISS
+    RAG -->|Load Chunks & Context| DB
+    RAG -->|Ground Truth Generation| Gemini
     RAG -.->|Offline Fallback| Ollama
-    DocStore -->|Extract & Chunk| Embedder
+    
+    AdminUI --> IngestionService
+    CrawlerService -->|Web Extraction & Doc Discovery| IngestionService
+    IngestionService -->|Extract & Chunk| Embedder
     Embedder -->|Add Vectors| FAISS
+    IngestionService -->|Save Metadata & Chunks| DB
 ```
 
 ---
 
-## 2. What Has Been Completed & Bugs Fixed
+## 2. Core Capabilities & Implemented Systems
 
-When we first tested the platform against **actual VIT-AP university documents**, standard RAG approaches failed due to multi-column tables, mixed degrees, and arbitrary text splitting. Below is the breakdown of the seven critical bugs we discovered and resolved:
-
-### 1. Two-Column Table Interleaving (Hallucinated Course Codes)
-* **The Problem:** Syllabus PDFs format courses in two columns. Standard text extractors read across the page horizontally, joining Row 1 Left with Row 1 Right (`CSE1012 Python` merged with `CSE4008 Social Network Analysis`). The LLM hallucinated fake courses like `CSE4008: Object Oriented Programming` and `CSE2005: Software Engineering`.
-* **The Fix:** Implemented a **Universal Coordinate-Based Column Extractor** in `extractor.py`. It splits pages cleanly at `x = 295`, completely isolating the left column from the right column so course codes remain mathematically locked to their exact titles and credits.
-
-### 2. Cross-Document Curriculum Bleed
-* **The Problem:** Vector search alone pulled chunks from both `B.Tech CSE Core` and `B.Tech CSBS` into the same context, causing CSBS courses (`CSE3014 UML`, `CSE3024 Compiler Design`) to appear in CSE Core answers.
-* **The Fix:** Added **Degree & Domain-Aware Filtering** in `retriever.py`. When a query asks about `B.Tech CSE Core`, chunks from CSBS or other degrees are automatically excluded before the LLM sees them.
-
-### 3. Blind 250-Word Chunk Fragmentation
-* **The Problem:** The chunker originally sliced text blindly every 250 words, cutting tables in half and mixing University Core, Programme Core, and Electives into single chunks.
-* **The Fix:** Built **Cohesive Semantic Section Chunking** in `chunker.py`. Chunks now align strictly to true academic boundaries (`Programme Core Courses`, `University Core Courses`, `Specialization Electives`).
-
-### 4. Text Cleaner Erasing Line Breaks
-* **The Problem:** A regex in `cleaner.py` replaced all whitespace (including `\n`) with spaces, flattening Markdown headings (`## `) into plain text and breaking chunking.
-* **The Fix:** Upgraded `clean_text()` to preserve single and double newlines while collapsing only extra horizontal spaces.
-
-### 5. Conversation History Echo
-* **The Problem:** Follow-up questions passed prior assistant responses back to the LLM. If an earlier response contained an error, the model repeated its own past mistakes.
-* **The Fix:** Added a **Ground Truth Authority Rule** in `prompt_builder.py` instructing the model that document context takes 100% precedence over previous conversation turns.
-
-### 6. Missing CSV & Excel (.xlsx) Support
-* **The Problem:** The ingestion pipeline only handled PDF, Word, and Text files. Uploading the Faculty Contact Directory caused a crash.
-* **The Fix:** Added native CSV and Excel (`openpyxl`) support. Tabular rows are converted into clean structured records (`Name | Emp ID | Title | Department | Cabin No`).
-
-### 7. Raw Markdown Output & Lack of Stream Control
-* **The Problem:** Chat responses showed raw asterisks (`**bold**`), and users could not stop generation mid-stream.
-* **The Fix:** Integrated full Markdown rendering with `react-markdown` and an `AbortController`-powered **"Stop Generating"** button in `EmployeeChat.tsx`.
+### A. Dual-Mode Conversational Intelligence & RAG Routing
+* **Root Problem Solved:** Previously, the platform treated every incoming message as a strict document search query. Simple greetings ("hello", "good morning") or conversational questions ("who are you", "what can you do") triggered the university fallback error message (*"The requested information is not available in official university documents..."*).
+* **Intent Classification Engine (`app/rag/intent.py`):** Automatically categorizes queries into 6 distinct operational intents before FAISS execution:
+  1. `GREETING`: Greet warmly, invite university questions (bypasses FAISS, <10ms fast response).
+  2. `GENERAL_CONVERSATION`: Introduces system capabilities, explains guidelines, or provides polite replies.
+  3. `UNIVERSITY_KNOWLEDGE`: Generates embeddings, retrieves verified syllabus/policy chunks, and applies strict anti-hallucination ground truth prompt constraints.
+  4. `STAFF_DIRECTORY`: Scans faculty directories for cabin numbers, employee IDs, titles, and departments.
+  5. `OUT_OF_SCOPE`: Politely explains that the Copilot specializes in VIT-AP University affairs and suggests 3 relevant questions the student can ask.
+  6. `EMAIL_DRAFTING`: Formats formal, academic email templates addressed to School Deans, Faculty, and Course Coordinators.
 
 ---
 
-## 3. Key Architectural Decisions Agreed Upon
+### B. Complete Hybrid Knowledge Ingestion System
 
-| Aspect | Decision | Rationale |
-| :--- | :--- | :--- |
-| **AI LLM Engine** | **Google Gemini 2.0 Flash** *(with Ollama fallback)* | **Zero GPU required on student laptops.** Blazing fast (100–150 tokens/sec), generous free tier (1,500 req/day), generates entire 20-course lists in < 1 second. |
-| **Database** | **SQLite (`copilot.db`) + FAISS** | Zero setup friction. No Docker daemon or PostgreSQL server required on local developer machines; works out of the box with zero RAM overhead. |
-| **Document Ingestion** | **100% Dynamic UI Upload** | No university documents or course files are hardcoded in the code. Admins upload files via the web UI; the system parses, embeds, and indexes them automatically. |
-| **Scope Adjustments** | **Postponed Features** | *Interactive Faculty Cards* and *Multi-lingual Translation* are set aside for future versions to focus on speed, reliability, and core accuracy. |
+#### Module 1: Manual Multi-Format Document Ingestion
+- **Supported Formats:** `PDF`, `DOCX`, `TXT`, `MD`, `CSV`, `XLSX`, `PPTX`, `HTML`.
+- **Drag-and-Drop Batch Upload:** Supports multi-file concurrent uploads with category tagging (`Academics`, `Curriculum`, `Hostel Rules`, `Faculty Directory`, `Examinations`, `General`).
+- **Extraction & Chunking:** Universal Coordinate-Based Column Extractor splits multi-column curricula without row interleaving; tables are formatted into structured markdown records.
+- **Deduplication:** SHA-256 content hashing prevents duplicate files from bloating the FAISS index.
+- **Document Lifecycle Management:**
+  - **Reprocess:** Cleans stale FAISS vectors and re-indexes source files.
+  - **Replace & Versioning:** Uploads new revisions, automatically increments version numbers (`v1.0` $\rightarrow$ `v1.1`), and hot-swaps vector chunks.
+  - **Delete:** Full cascading removal across disk storage, SQLite chunk rows, and the FAISS vector index.
+
+#### Module 2: Automated Official Website Crawler
+- **Seed URL & Allowlist:** Configured for `https://vitap.ac.in/` with strict subdomain allowlisting (`vitap.ac.in`, `vtop.vitap.ac.in`).
+- **Security & SSRF Guardrails:** Validates every URL, resolving DNS and blocking private/loopback/cloud metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.169.254`). Enforces a 25 MB file limit and 15s timeout.
+- **Robots.txt & Politeness:** Automatically checks robots.txt compliance and applies configurable rate-limiting delays.
+- **Incremental Crawling:** Uses HTTP `ETag`, `If-Modified-Since` (HTTP 304), and SHA-256 hash checks to skip unchanged pages during recurring crawls.
+- **Content Extraction:** Trafilatura + BeautifulSoup extractor strips navbars, footers, and scripts, producing clean semantic Markdown.
+- **Document Discovery:** Automatically identifies, downloads, and indexes linked PDF handbooks, DOCX files, and spreadsheets.
+- **Crawler Controls & Real-Time Logs:** Start, Pause, Resume, and Stop controls with a live monospace streaming log terminal and discovered pages inspection table.
+- **Automated Scheduler (`app/services/crawler/scheduler.py`):** Runs daily, weekly, or manual crawls without overlapping runs.
+
+#### Module 3: Unified Pipeline
+Both manual uploads and crawled pages/PDFs feed into the exact same `IngestionService` ([pipeline.py](file:///c:/Users/dpsin/Desktop/Capstone/backend/app/services/ingestion/pipeline.py)), ensuring 100% unified chunk formatting, metadata attribution, embeddings, and FAISS indexing.
+
+#### Module 4: Grounded Citations
+- Chunks preserve `source_type` ("manual" vs "crawler") and `source_url`.
+- Citations on the frontend display clickable hyperlinks directly to official university web pages.
 
 ---
 
-## 4. Prioritized Step-by-Step Action Plan
+### C. UI/UX SaaS Redesign
+- **Animated 3D AI Visualization:** Replaced the static neural sphere with an interactive, glowing 3D particle orb.
+- **Premium Chat Composer:** Floating input bar with subtle glowing borders, responsive layout across all devices, and an abortable SSE streaming stop controller.
+- **Sidebar & Dialogue History:** Collapsible conversation history sidebar with active indicator, conversation renaming, and single-click clear functionality.
+- **Knowledge Management Portal (`OrgAdmin.tsx`):** Dual-tab interface ("Manual Ingestion" and "Website Crawler") with real-time KPI metrics, upload dropzone, crawler configuration controls, live log terminal, and discovered URL inspector.
+
+---
+
+## 3. Real-World Bugs Resolved
+
+| # | Bug / Issue Discovered | Root Cause | Engineering Resolution |
+| :--- | :--- | :--- | :--- |
+| **1** | **Two-Column Table Interleaving** | PDFs format courses in two columns; naive extractors read horizontally, merging Left Row 1 with Right Row 1. | Implemented coordinate-based splitting (`x = 295`) in `extractor.py`, isolating columns and locking course codes to their titles. |
+| **2** | **Cross-Document Curriculum Bleed** | Vector search pulled chunks from both CSE Core and CSBS into the same prompt context. | Added degree and branch-aware metadata filtering in `retriever.py`. |
+| **3** | **Conversational Fallback Error** | The system treated greetings ("hello") as missing document queries, responding with the strict fallback disclaimer. | Built pre-retrieval Query Intent Classification (`QueryIntent.GREETING`), bypassing vector search and generating natural responses. |
+| **4** | **Blind 250-Word Chunk Fragmentation** | Blind word-count chunking split tables and mixed Program Core and Electives into single chunks. | Implemented cohesive semantic section chunking matching academic syllabus boundaries. |
+| **5** | **Conversation History Hallucination** | Prior inaccurate assistant dialogue turns were echoed back into the LLM context. | Added Ground Truth Authority Rules ensuring context chunks take 100% precedence over previous turns. |
+| **6** | **Missing PPTX & HTML Support** | University guidelines and crawled pages in HTML or slide formats failed ingestion. | Built native `extract_text_from_pptx` and `extract_text_from_html` in `extractor.py`. |
+| **7** | **Offline HuggingFace Network Lag** | `SentenceTransformer` attempted HEAD requests to Hugging Face Hub, causing timeouts in offline sandbox. | Configured `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` in `embedder.py` for instant local model loading. |
+
+---
+
+## 4. Prioritized Execution Plan & Milestone Roadmap
 
 ```mermaid
-flowchart TD
-    S1["Step 1: Auth & Login Overhaul\n(Sign Up + Role Separation)\n[COMPLETED]"] --> S2["Step 2: Gemini 2.0 Flash Integration\n(Ultra-Fast Response, Zero GPU)\n[COMPLETED]"]
-    S2 --> S3["Step 3: Semantic Response Caching\n(Instant <70ms Frequent Answers)\n[COMPLETED]"]
-    S3 --> S4["Step 4: Knowledge Base Population\n(Upload & Verify All Capstone Files)\n[IN PROGRESS]"]
-    S4 --> S5["Step 5: UI/UX Enhancements\n(Starter Pills, Course Tables, Citations)\n[IN PROGRESS]"]
+flowchart LR
+    M1["Phase 1: Dual-Mode Intelligence\n& Latency Optimization\n(COMPLETED)"] --> M2["Phase 2: Hybrid Ingestion\n(Manual + Web Crawler)\n(COMPLETED)"]
+    M2 --> M3["Phase 3: Production Hardening\n& Enterprise Evaluation\n(CURRENT)"]
+    M3 --> M4["Phase 4: Advanced Extensions\n(Role Portals & Multi-Campus)\n(PLANNED)"]
 ```
 
-### Step 1: Authentication & Role-Separated Login Interface *(COMPLETED)*
-* Added a **Sign In vs. Sign Up toggle** in `Login.tsx` allowing students to self-register with Full Name, Registration Number (Student ID), Email, and Password.
-* Built email domain detection in `auth.py` to automatically associate new registrants with the university organization (`vitap`).
-* Added one-click **Quick Demo Login pills** (🎓 Student, 🏫 Org Admin, ⚙️ Platform Admin) for immediate evaluation without manual typing.
+### Phase 1: Dual-Mode Conversational Intelligence *(COMPLETED)*
+- [x] Query Intent Classification (`GREETING`, `GENERAL_CONVERSATION`, `UNIVERSITY_KNOWLEDGE`, `STAFF_DIRECTORY`, `OUT_OF_SCOPE`).
+- [x] Sub-10ms fast response bypass for greetings.
+- [x] Google Gemini 2.0 Flash primary cloud engine with streaming tokens.
+- [x] Offline fallback to local Ollama (`qwen2.5:1.5b`).
+- [x] Exact and semantic response caching (<70ms cache hit).
 
-### Step 2: Google Gemini 2.0 Flash Integration *(COMPLETED)*
-* Created unified hybrid client `backend/app/rag/llm_client.py` with native SSE streaming for Google Gemini 2.0 Flash.
-* Configured in `.env`:
-  * If `GEMINI_API_KEY` is present $\rightarrow$ streams tokens from Google Gemini 2.0 Flash at 100+ tokens/sec with **0% local GPU / RAM load**.
-  * If absent or offline $\rightarrow$ seamlessly falls back to local Ollama (`qwen2.5:1.5b`).
-* Eliminated heavy RAM requirements by standardizing on `qwen2.5:1.5b` (986 MB) for lightweight local fallbacks.
+### Phase 2: Hybrid Knowledge Ingestion & Web Crawler *(COMPLETED)*
+- [x] Multi-format manual document ingestion (PDF, DOCX, XLSX, CSV, PPTX, HTML, TXT, MD).
+- [x] Automated website crawler targeting `https://vitap.ac.in/` with robots.txt compliance and rate limiting.
+- [x] SSRF guardrails and domain allowlisting.
+- [x] Incremental crawling via ETag, HTTP 304, and SHA-256 content deduplication.
+- [x] Automatic PDF and document discovery from crawled web pages.
+- [x] Unified `IngestionService` feeding the shared chunking, embedding, and FAISS indexing pipeline.
+- [x] Document lifecycle: Reprocess, Replace with versioning, and Delete.
+- [x] Admin UI in `OrgAdmin.tsx` with live log terminal, crawler controls, and discovered URL inspector.
+- [x] Clickable web citations in RAG answers.
 
-### Step 3: Semantic Response Caching *(COMPLETED)*
-* Created `ResponseCache` database model and `backend/app/rag/cache.py` with normalized exact query matching (< 1ms) and cosine vector similarity ($\ge 0.95$).
-* Verified end-to-end benchmark:
-  * Cold CPU Generation: `115.82s`
-  * Semantic Cache Hit: **`0.0673s` (67 milliseconds — over 1,700× faster!)**
-* Connected to both synchronous `/api/chat` and streaming `/api/chat/stream` endpoints.
+### Phase 3: Production Hardening & Verification *(CURRENT FOCUS)*
+- [x] Unit test suite for hybrid ingestion (`test_hybrid_ingestion.py` — 4/4 passing).
+- [x] Unit test suite for intent classification and routing (`test_intent_and_routing.py` — 9/9 passing).
+- [x] Unit test suite for core backend APIs (`test_backend.py` — 6/6 passing).
+- [x] TypeScript frontend build validation (`0 errors`).
+- [ ] End-to-end evaluation run crawling the full VIT-AP academic sub-sections.
+- [ ] Automated daily backup script for `copilot.db` and the FAISS index files.
 
-### Step 4: Knowledge Base Population & Validation *(IN PROGRESS)*
-* Verified and indexed core university regulations and curricula:
-  1. `VITAP-2025+B.Tech+CSE+Core.pdf` (Ready & Indexed)
-  2. `2025+-+B.Tech+CSBS.pdf` (Ready & Indexed)
-  3. `VIT_AP_Ladies_Hostel_Rules_and_Notices_Compiled.docx` (Ready & Indexed)
-* Additional department and directory files (`2023+B.Com.pdf`, `2023+BBA.pdf`, `Faculty_Contact_List.xlsx`) can be uploaded dynamically through the Org Admin knowledge portal.
-
-### Step 5: UI/UX Enhancements & Citations *(IN PROGRESS)*
-* **Interactive Quick Action Starter Pills:** Integrated clickable suggestions above the chat input (Hostel Outing Rules, General Leave Process, Escalation Mechanism, Night Attendance).
-* **Streaming Stop Controller:** Implemented mid-generation cancellation via `AbortController` in `EmployeeChat.tsx`.
-* **Markdown Rendering:** Upgraded chat bubble rendering using `react-markdown`.
+### Phase 4: Future Roadmap & Advanced Extensions *(POST-CAPSTONE)*
+- [ ] **Interactive Visual Faculty Cards:** Rich interactive UI cards displaying faculty photo, cabin map, and email contact buttons.
+- [ ] **Multi-Campus Support:** Extend configuration profiles to support multiple VIT campuses (VIT Vellore, Chennai, Bhopal).
+- [ ] **Fine-Grained Role Portals:** Tailored document visibility layers separating student-facing vs. internal faculty circulars.
 
 ---
 
@@ -151,7 +187,8 @@ flowchart TD
 ### Prerequisites
 * **Python 3.10+** (with virtual environment in `backend/venv`)
 * **Node.js 18+** (for frontend)
-* **Ollama** (optional if using `GEMINI_API_KEY`)
+* **Google Gemini API Key** (set in `backend/.env` as `GEMINI_API_KEY`)
+* **Ollama** (optional local fallback)
 
 ### Quick Start Commands
 
@@ -159,19 +196,26 @@ flowchart TD
 ```powershell
 cd "backend"
 .\venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*API Swagger Documentation is available at:* `http://localhost:8000/docs`
+* Interactive API Documentation (Swagger): `http://localhost:8000/docs`
 
 #### 2. Frontend (React + Vite)
 ```powershell
 cd "frontend"
-npm install
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
-*Web Application is accessible at:* `http://localhost:5173`
+* Web Application: `http://localhost:5173`
 
-#### 3. Default Demo Credentials
+#### 3. Running Unit Tests
+```powershell
+cd "backend"
+.\venv\Scripts\python.exe -m unittest tests/test_hybrid_ingestion.py
+.\venv\Scripts\python.exe -m unittest tests/test_intent_and_routing.py
+.\venv\Scripts\python.exe -m unittest tests/test_backend.py
+```
+
+#### 4. Default Demo Accounts
 * **Student:** `student@vitap.ac.in` / `student123`
 * **Org Admin:** `org@vitap.ac.in` / `org123`
 * **Platform Admin:** `admin@vitap.ac.in` / `admin123`

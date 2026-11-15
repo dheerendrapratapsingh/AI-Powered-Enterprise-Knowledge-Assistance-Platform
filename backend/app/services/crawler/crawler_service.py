@@ -3,6 +3,7 @@ import time
 import shutil
 import logging
 import threading
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 from typing import Dict, List, Set, Optional, Tuple
@@ -138,7 +139,7 @@ class WebsiteCrawler:
             append_job_log(self.job_id, f"Failed downloading {doc_url}: {e}")
             return None
 
-    def run(self):
+    def run(self, initial_seeds: Optional[List[str]] = None):
         """
         Main crawling loop adhering to depth limit, max pages, rate limiting,
         SSRF controls, and incremental deduplication.
@@ -148,9 +149,15 @@ class WebsiteCrawler:
         self.db.commit()
 
         # Queue items: (url, current_depth)
-        queue: List[Tuple[str, int]] = [(normalize_url(self.config.seed_url), 0)]
-        self.discovered_urls.add(queue[0][0])
-        self.job.urls_discovered = 1
+        seeds = initial_seeds if initial_seeds else [self.config.seed_url]
+        queue: List[Tuple[str, int]] = []
+        for s in seeds:
+            norm = normalize_url(s)
+            if norm not in self.discovered_urls:
+                self.discovered_urls.add(norm)
+                queue.append((norm, 0))
+
+        self.job.urls_discovered = len(self.discovered_urls)
         self.db.commit()
 
         session = requests.Session()
@@ -353,7 +360,7 @@ class WebsiteCrawler:
         # Job completed
         if self.job.status != "CANCELLED":
             self.job.status = "COMPLETED"
-        self.job.finished_at = time.strftime("%Y-%m-%d %H:%M:%S")
+        self.job.finished_at = datetime.now(timezone.utc)
         self.job.error_log = "\n".join(_crawler_logs.get(self.job_id, [])[-50:])
         self.db.commit()
         append_job_log(self.job_id, f"Crawl finished. Pages: {self.job.pages_crawled}, Indexed: {self.job.documents_indexed}")
