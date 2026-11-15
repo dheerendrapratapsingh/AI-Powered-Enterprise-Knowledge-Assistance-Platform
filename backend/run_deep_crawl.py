@@ -18,12 +18,26 @@ SEED_URLS = [
     "https://vitap.ac.in/",
     "https://vitap.ac.in/allprograms",
     "https://vitap.ac.in/allschools",
-    "https://vitap.ac.in/hostels",
-    "https://vitap.ac.in/policies",
-    "https://vitap.ac.in/academic-research",
-    "https://vitap.ac.in/academiccalender",
+    "https://vitap.ac.in/application-process",
     "https://vitap.ac.in/fees-and-scholarships",
-    "https://vitap.ac.in/transport"
+    "https://vitap.ac.in/academiccalender",
+    "https://vitap.ac.in/academic-research",
+    "https://vitap.ac.in/credits",
+    "https://vitap.ac.in/contact-us",
+    "https://vitap.ac.in/hostels",
+    "https://vitap.ac.in/transport",
+    "https://vitap.ac.in/policies",
+    "https://vitap.ac.in/iprcell",
+    "https://vitap.ac.in/iqac",
+    "https://vitap.ac.in/sporic/ssp-completed",
+    "https://vitap.ac.in/careers",
+    "https://vitap.ac.in/coe",
+    "https://vitap.ac.in/clubs-and-chapters",
+    "https://vitap.ac.in/cdc-overview",
+    "https://vitap.ac.in/cdc-statistics",
+    "https://vitap.ac.in/cdc-office",
+    "https://vitap.ac.in/infrastructure",
+    "https://vitap.ac.in/vision-and-mission"
 ]
 
 def run_deep_crawl(max_pages: int = 50, max_depth: int = 3):
