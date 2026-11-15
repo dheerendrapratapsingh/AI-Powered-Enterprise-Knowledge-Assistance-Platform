@@ -19,7 +19,7 @@ def check_ollama_health() -> bool:
 
 def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
     api_key = settings.GEMINI_API_KEY.strip()
-    model = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")
+    model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
@@ -122,7 +122,7 @@ def generate_response(prompt: str) -> dict:
     if check_gemini_configured():
         try:
             api_key = settings.GEMINI_API_KEY.strip()
-            model = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")
+            model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
