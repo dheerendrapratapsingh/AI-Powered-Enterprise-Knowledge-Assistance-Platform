@@ -24,6 +24,8 @@ ENV/
 .env
 backend/.env
 *.db-journal
+backups/
+backend/backups/
 
 # Editor directories and files
 .vscode/*

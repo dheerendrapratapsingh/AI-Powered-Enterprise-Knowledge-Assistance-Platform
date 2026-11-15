@@ -104,3 +104,18 @@ export async function getCrawledPages(params?: { jobId?: string; status?: string
   const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
   return fetchWithAuth(`/admin/crawler/pages${query}`);
 }
+
+export async function getDocumentChunks(documentId: string) {
+  return fetchWithAuth(`/admin/documents/${documentId}/chunks`);
+}
+
+export async function probeRetrieval(query: string, topK: number = 5) {
+  return fetchWithAuth("/admin/documents/probe-retrieval", {
+    method: "POST",
+    body: JSON.stringify({ query, top_k: topK })
+  });
+}
+
+export async function getKnowledgeStats() {
+  return fetchWithAuth("/admin/documents/knowledge-stats");
+}

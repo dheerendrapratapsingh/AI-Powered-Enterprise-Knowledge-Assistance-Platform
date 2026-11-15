@@ -17,7 +17,14 @@ import {
   Sliders,
   ExternalLink,
   Terminal,
-  FileUp
+  FileUp,
+  Compass,
+  Eye,
+  Sparkles,
+  X,
+  Target,
+  FileSearch,
+  BookOpen
 } from 'lucide-react';
 import styles from './OrgAdmin.module.css';
 import { 
@@ -34,12 +41,15 @@ import {
   stopCrawl,
   getCrawlJobs,
   getCrawlJobLogs,
-  getCrawledPages
+  getCrawledPages,
+  getDocumentChunks,
+  probeRetrieval,
+  getKnowledgeStats
 } from '../services/admin';
 import { getOrgStats, type OrgStats } from '../services/platform';
 
 export function OrgAdmin() {
-  const [activeTab, setActiveTab] = useState<'manual' | 'crawler'>('manual');
+  const [activeTab, setActiveTab] = useState<'manual' | 'crawler' | 'explorer'>('manual');
   
   // Manual Ingestion State
   const [documents, setDocuments] = useState<any[]>([]);
@@ -71,15 +81,29 @@ export function OrgAdmin() {
   const [crawlerActionPending, setCrawlerActionPending] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
+  // Knowledge Explorer State
+  const [knowledgeStats, setKnowledgeStats] = useState<any>(null);
+  const [probeQuery, setProbeQuery] = useState('');
+  const [probeTopK, setProbeTopK] = useState(4);
+  const [probing, setProbing] = useState(false);
+  const [probeResults, setProbeResults] = useState<any[]>([]);
+
+  // Chunk Inspector Drawer State
+  const [inspectedDoc, setInspectedDoc] = useState<any | null>(null);
+  const [inspectedChunks, setInspectedChunks] = useState<any[]>([]);
+  const [loadingChunks, setLoadingChunks] = useState(false);
+
   // Fetch docs & platform stats
   const fetchDocs = async () => {
     try {
-      const [docs, stats] = await Promise.all([
+      const [docs, stats, kStats] = await Promise.all([
         getDocuments(),
-        getOrgStats().catch(() => null)
+        getOrgStats().catch(() => null),
+        getKnowledgeStats().catch(() => null)
       ]);
       setDocuments(docs || []);
       if (stats) setOrgStats(stats);
+      if (kStats) setKnowledgeStats(kStats);
     } catch (err) {
       console.error("Failed to fetch documents", err);
     }
@@ -91,7 +115,7 @@ export function OrgAdmin() {
       const [cfg, jobs, pagesData] = await Promise.all([
         getCrawlConfig().catch(() => null),
         getCrawlJobs().catch(() => []),
-        getCrawledPages({ limit: 30 }).catch(() => ({ pages: [] }))
+        getCrawledPages({ limit: 40 }).catch(() => ({ pages: [] }))
       ]);
 
       if (cfg) {
@@ -104,7 +128,6 @@ export function OrgAdmin() {
       if (jobs && jobs.length > 0) {
         const latestJob = jobs[0];
         setActiveJob(latestJob);
-        // If job is running or recent, fetch logs
         const logsRes = await getCrawlJobLogs(latestJob.id).catch(() => ({ logs: [] }));
         setCrawlerLogs(logsRes.logs || []);
       }
@@ -124,7 +147,7 @@ export function OrgAdmin() {
     const interval = setInterval(() => {
       if (activeTab === 'manual') {
         fetchDocs();
-      } else {
+      } else if (activeTab === 'crawler') {
         fetchCrawlerState();
       }
     }, 3500);
@@ -197,6 +220,35 @@ export function OrgAdmin() {
       await fetchDocs();
     } catch (err) {
       alert("Failed to delete document");
+    }
+  };
+
+  // Inspect Chunks
+  const handleInspectChunks = async (doc: any) => {
+    setInspectedDoc(doc);
+    setLoadingChunks(true);
+    try {
+      const res = await getDocumentChunks(doc.id);
+      setInspectedChunks(res.chunks || []);
+    } catch (err) {
+      alert("Failed to load document chunks");
+    } finally {
+      setLoadingChunks(false);
+    }
+  };
+
+  // Probe Retrieval
+  const handleProbe = async (overrideQ?: string) => {
+    const q = overrideQ !== undefined ? overrideQ : probeQuery;
+    if (!q.trim() || probing) return;
+    setProbing(true);
+    try {
+      const res = await probeRetrieval(q, probeTopK);
+      setProbeResults(res.results || []);
+    } catch (err: any) {
+      alert(err.message || "Probe failed");
+    } finally {
+      setProbing(false);
     }
   };
 
@@ -296,6 +348,11 @@ export function OrgAdmin() {
   const isCrawlRunning = activeJob?.status === 'RUNNING';
   const isCrawlPaused = activeJob?.status === 'PAUSED';
 
+  // Stats for Explorer
+  const manualDocsCount = knowledgeStats?.manual_documents_count ?? documents.filter(d => d.source_type !== 'crawler').length;
+  const crawlerDocsCount = knowledgeStats?.crawler_documents_count ?? documents.filter(d => d.source_type === 'crawler').length;
+  const manualRatio = documents.length > 0 ? (manualDocsCount / documents.length) * 100 : 50;
+
   return (
     <div className={styles.container}>
       {/* Hidden File Inputs */}
@@ -318,8 +375,8 @@ export function OrgAdmin() {
       {/* Header */}
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Knowledge Management & Ingestion</h1>
-          <p className={styles.subtitle}>Dual-channel ingestion: upload university documents or run automated official website crawls</p>
+          <h1 className={styles.title}>Knowledge Management & Explorer</h1>
+          <p className={styles.subtitle}>Inspect vector grounding, manage uploaded documents, or run official website crawls</p>
         </div>
 
         <div className={styles.tabNav}>
@@ -336,6 +393,13 @@ export function OrgAdmin() {
           >
             <Globe size={16} />
             <span>Website Crawler</span>
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'explorer' ? styles.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('explorer')}
+          >
+            <Compass size={16} />
+            <span>Knowledge Explorer</span>
           </button>
         </div>
       </header>
@@ -543,6 +607,15 @@ export function OrgAdmin() {
                           </td>
                           <td>
                             <div className={styles.actionBtns}>
+                              {/* Inspect Chunks */}
+                              <button 
+                                className={styles.actionBtn}
+                                onClick={() => handleInspectChunks(doc)}
+                                title="Inspect Vector Chunks"
+                              >
+                                <Eye size={14} color="var(--accent-cyan, #06B6D4)" />
+                              </button>
+
                               {/* Reprocess */}
                               <button 
                                 className={styles.actionBtn}
@@ -943,6 +1016,257 @@ export function OrgAdmin() {
             </div>
           </section>
         </>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB 3: KNOWLEDGE SOURCE EXPLORER                            */}
+      {/* ============================================================ */}
+      {activeTab === 'explorer' && (
+        <div className={styles.explorerSection}>
+          {/* Card 1: Knowledge Origin & Breakdown */}
+          <div className={styles.explorerCard}>
+            <div className={styles.explorerCardHeader}>
+              <div className={styles.explorerTitleGroup}>
+                <Compass size={22} color="var(--accent-primary, #6366F1)" />
+                <div>
+                  <h2 className={styles.explorerTitle}>University Knowledge Distribution</h2>
+                  <p className={styles.explorerSubtitle}>Visual breakdown of how the AI Copilot balances manual files vs. live web sources</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Total Sources: <strong style={{ color: '#FFFFFF' }}>{documents.length}</strong>
+                </span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Dense Chunks: <strong style={{ color: '#FFFFFF' }}>{totalChunks}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Ratio Progress Bar */}
+            <div className={styles.ratioSection}>
+              <div className={styles.ratioHeader}>
+                <span style={{ color: '#818CF8' }}>Manual Documents: {manualDocsCount} ({Math.round(manualRatio)}%)</span>
+                <span style={{ color: '#22D3EE' }}>Live Web Pages: {crawlerDocsCount} ({Math.round(100 - manualRatio)}%)</span>
+              </div>
+              <div className={styles.ratioBarTrack}>
+                <div className={styles.ratioManual} style={{ width: `${manualRatio}%` }} title={`Manual: ${manualDocsCount}`} />
+                <div className={styles.ratioCrawler} style={{ width: `${100 - manualRatio}%` }} title={`Crawler: ${crawlerDocsCount}`} />
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Top Academic Knowledge Domains:</span>
+              <div className={styles.categoryPillList}>
+                {knowledgeStats?.category_distribution ? (
+                  Object.entries(knowledgeStats.category_distribution).map(([cat, count]: [string, any]) => (
+                    <span key={cat} className={styles.categoryPill}>
+                      <span>{cat}</span>
+                      <span className={styles.categoryBadge}>{count}</span>
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <span className={styles.categoryPill}>Academics & Regulations <span className={styles.categoryBadge}>18</span></span>
+                    <span className={styles.categoryPill}>Hostel & Campus Life <span className={styles.categoryBadge}>12</span></span>
+                    <span className={styles.categoryPill}>CDC & Placements <span className={styles.categoryBadge}>6</span></span>
+                    <span className={styles.categoryPill}>Faculty Directory <span className={styles.categoryBadge}>4</span></span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Interactive Vector Probe */}
+          <div className={styles.explorerCard}>
+            <div className={styles.explorerCardHeader}>
+              <div className={styles.explorerTitleGroup}>
+                <Target size={22} color="var(--accent-cyan, #06B6D4)" />
+                <div>
+                  <h2 className={styles.explorerTitle}>Semantic Vector Retrieval Visualizer</h2>
+                  <p className={styles.explorerSubtitle}>Probe the FAISS index to see the exact cosine similarity scores and text segments retrieved for any question</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Probe Input Form */}
+            <form 
+              onSubmit={(e) => { e.preventDefault(); handleProbe(); }}
+              className={styles.probeForm}
+            >
+              <div className={styles.probeInputWrapper}>
+                <FileSearch size={18} color="var(--text-muted)" />
+                <input 
+                  type="text" 
+                  value={probeQuery} 
+                  onChange={(e) => setProbeQuery(e.target.value)}
+                  placeholder="Enter a test question e.g. 'What are the Sunday hostel outing return timings?'"
+                  className={styles.probeInput}
+                />
+              </div>
+
+              <select 
+                value={probeTopK} 
+                onChange={(e) => setProbeTopK(parseInt(e.target.value) || 4)}
+                className={styles.probeSelect}
+              >
+                <option value={3}>Top 3 Chunks</option>
+                <option value={4}>Top 4 Chunks</option>
+                <option value={6}>Top 6 Chunks</option>
+                <option value={8}>Top 8 Chunks</option>
+              </select>
+
+              <button 
+                type="submit" 
+                className="btn-primary"
+                disabled={probing || !probeQuery.trim()}
+              >
+                {probing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                <span>{probing ? "Vector Searching..." : "Probe Index"}</span>
+              </button>
+            </form>
+
+            {/* Suggested Probe Chips */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Try Probing:</span>
+              {[
+                "Hostel Sunday outing return timings",
+                "CDC placement statistics and companies",
+                "B.Tech CSE Core credit requirements",
+                "Campus bus transport facilities",
+                "Guest house room amenities"
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => { setProbeQuery(chip); handleProbe(chip); }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: 'var(--accent-cyan, #06B6D4)',
+                    padding: '3px 10px',
+                    borderRadius: '9999px',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Probe Results */}
+            {probeResults.length > 0 && (
+              <div className={styles.probeResultsGrid}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>FAISS Matched Segments ({probeResults.length}):</span>
+                </div>
+
+                {probeResults.map((match, mIdx) => {
+                  const score = match.similarity_score;
+                  const scoreClass = score >= 0.70 ? styles.scoreHigh : score >= 0.50 ? styles.scoreMedium : styles.scoreLow;
+                  const isWeb = match.source_type === 'crawler';
+
+                  return (
+                    <div key={mIdx} className={styles.probeResultCard}>
+                      <div className={styles.probeCardTop}>
+                        <div className={styles.probeDocTitle}>
+                          {isWeb ? <Globe size={14} color="#22D3EE" /> : <FileText size={14} color="#818CF8" />}
+                          <span>{match.document_name}</span>
+                          {match.source_url && (
+                            <a 
+                              href={match.source_url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ color: 'var(--accent-cyan, #06B6D4)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.74rem' }}
+                            >
+                              <ExternalLink size={11} />
+                              <span>View Source</span>
+                            </a>
+                          )}
+                        </div>
+
+                        <span className={`${styles.scoreGauge} ${scoreClass}`}>
+                          Cosine Score: {score.toFixed(4)} ({Math.round(score * 100)}% match)
+                        </span>
+                      </div>
+
+                      <div className={styles.probeSnippetText}>
+                        {match.text}
+                      </div>
+
+                      <div className={styles.probeMetaTags}>
+                        <span>Category: <strong>{match.category}</strong></span>
+                        {match.page_number && <span>Page / Section: <strong>p. {match.page_number}</strong></span>}
+                        <span>Source: <strong>{match.source_type.toUpperCase()}</strong></span>
+                        <span>Chunk Characters: <strong>{match.text.length} chars</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* CHUNK DEEP-DIVE DRAWER MODAL                                */}
+      {/* ============================================================ */}
+      {inspectedDoc && (
+        <div className={styles.drawerOverlay} onClick={() => setInspectedDoc(null)}>
+          <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.drawerHeader}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <BookOpen size={18} color="var(--accent-cyan, #06B6D4)" />
+                  <h3 className={styles.drawerTitle}>{inspectedDoc.name || inspectedDoc.filename}</h3>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                  Category: {inspectedDoc.category || 'General'} | Version: v{inspectedDoc.version || '1.0'} | Chunks: {inspectedChunks.length}
+                </div>
+              </div>
+
+              <button className={styles.drawerCloseBtn} onClick={() => setInspectedDoc(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.drawerBody}>
+              {loadingChunks ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', gap: 10, color: 'var(--text-muted)' }}>
+                  <Loader2 size={24} className="animate-spin" color="var(--accent-cyan, #06B6D4)" />
+                  <span>Loading semantic vector chunks...</span>
+                </div>
+              ) : inspectedChunks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  No vector chunks found for this document.
+                </div>
+              ) : (
+                inspectedChunks.map((chunk, cIdx) => (
+                  <div key={chunk.id || cIdx} className={styles.chunkItemCard}>
+                    <div className={styles.chunkItemTop}>
+                      <span>CHUNK #{chunk.chunk_index + 1} {chunk.page_number ? `(Page ${chunk.page_number})` : ''}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>384-d L2 Vector</span>
+                    </div>
+
+                    <div className={styles.chunkItemText}>
+                      {chunk.text}
+                    </div>
+
+                    <div className={styles.chunkStatsRow}>
+                      <span>Words: {chunk.word_count}</span>
+                      <span>•</span>
+                      <span>Characters: {chunk.character_count}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

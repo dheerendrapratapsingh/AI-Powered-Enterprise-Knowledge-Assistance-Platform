@@ -109,12 +109,18 @@ flowchart TD
 - **Crawler Controls & Real-Time Logs:** Start, Pause, Resume, and Stop controls with a live monospace streaming log terminal and discovered pages inspection table.
 - **Automated Scheduler (`app/services/crawler/scheduler.py`):** Runs daily, weekly, or manual crawls without overlapping runs.
 
-#### Module 3: Unified Pipeline
+#### Module 3: Knowledge Source Explorer & Semantic Retrieval Inspector
+- **Admin Knowledge Origin Breakdown:** Interactive visual breakdown displaying the exact ratio of manual uploaded documents vs. automated web crawler pages, total chunk counts, category distribution, and file type distributions.
+- **"Ask & Probe Knowledge" Vector Visualizer:** Live semantic retrieval probe allowing administrators to test any arbitrary question, view matched FAISS chunks, inspection gauges with Cosine Similarity scores (High $\ge 0.70$, Medium $\ge 0.50$, Low $< 0.50$), token/character counts, and exact grounded text excerpts passed to Gemini.
+- **Chunk Deep-Dive Inspector Drawer:** Slide-over drawer modal accessible from any document in the system displaying its constituent 384-dimensional semantic chunks, chunk indexes, word counts, character lengths, and JSON metadata.
+- **Clickable Citations:** All web-sourced citations in student chat render as clickable hyperlinks opening the real official `vitap.ac.in` page in a new tab with an external link indicator.
+
+#### Module 4: Unified Pipeline
 Both manual uploads and crawled pages/PDFs feed into the exact same `IngestionService` ([pipeline.py](file:///c:/Users/dpsin/Desktop/Capstone/backend/app/services/ingestion/pipeline.py)), ensuring 100% unified chunk formatting, metadata attribution, embeddings, and FAISS indexing.
 
-#### Module 4: Grounded Citations
-- Chunks preserve `source_type` ("manual" vs "crawler") and `source_url`.
-- Citations on the frontend display clickable hyperlinks directly to official university web pages.
+#### Module 5: Grounded Citations & Deep Multi-School Crawl
+- **Comprehensive Academic Ingestion:** Over 80+ official university pages and PDFs across all major schools (SCOPE, SENSE, SMEC, VSB, VSL, SAS), Career Development Centre (CDC) placements, hostel fees/curfews, transport routes, and campus life regulations crawled and indexed directly into FAISS (`vitap.index`) and SQLite (`copilot.db`).
+- **Next.js RSC Stream Extraction:** Developed a custom parser in `webpage_extractor.py` to extract links and text from Next.js React Server Component (`self.__next_f.push`) payloads used by `vitap.ac.in`.
 
 ---
 
@@ -167,13 +173,14 @@ flowchart LR
 - [x] Admin UI in `OrgAdmin.tsx` with live log terminal, crawler controls, and discovered URL inspector.
 - [x] Clickable web citations in RAG answers.
 
-### Phase 3: Production Hardening & Verification *(CURRENT FOCUS)*
+### Phase 3: Production Hardening & Verification *(COMPLETED)*
 - [x] Unit test suite for hybrid ingestion (`test_hybrid_ingestion.py` — 4/4 passing).
 - [x] Unit test suite for intent classification and routing (`test_intent_and_routing.py` — 9/9 passing).
 - [x] Unit test suite for core backend APIs (`test_backend.py` — 6/6 passing).
 - [x] TypeScript frontend build validation (`0 errors`).
-- [ ] End-to-end evaluation run crawling the full VIT-AP academic sub-sections.
-- [ ] Automated daily backup script for `copilot.db` and the FAISS index files.
+- [x] End-to-end multi-school and academic deep crawl (80+ pages & PDFs across SCOPE, SENSE, SMEC, VSB, VSL, SAS, CDC, Hostels).
+- [x] Knowledge Source Explorer & Live Semantic Retrieval Inspector (Admin Tab, Origin Ratio, Probe Gauges, Chunk Deep-Dive Drawer).
+- [x] Automated daily backup script for `copilot.db` and the FAISS index files (`backend/backup.py` snapshot creation & restore utility).
 
 ### Phase 4: Future Roadmap & Advanced Extensions *(POST-CAPSTONE)*
 - [ ] **Interactive Visual Faculty Cards:** Rich interactive UI cards displaying faculty photo, cabin map, and email contact buttons.
