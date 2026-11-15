@@ -52,7 +52,22 @@ def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
 
 def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
     if not check_ollama_health():
-        raise RuntimeError("Local Ollama service is unavailable and no GEMINI_API_KEY is configured.")
+        notice = (
+            "⚠️ **AI Generation Service Unavailable**\n\n"
+            "Neither a **Google Gemini API Key** is configured nor is the local **Ollama** service running.\n\n"
+            "### How to enable AI responses:\n"
+            "1. **Google Gemini (Recommended — Ultra-fast, zero GPU):**\n"
+            "   - Open `.env` in your project folder.\n"
+            "   - Add your key: `GEMINI_API_KEY=AIzaSy...` ([Get free key at Google AI Studio](https://aistudio.google.com/app/apikey))\n"
+            "   - Save the file and restart the backend server.\n\n"
+            "2. **Local Ollama Fallback:**\n"
+            "   - Run `ollama run qwen2.5:1.5b` in your terminal.\n"
+        )
+        import time
+        for word in notice.split(" "):
+            yield word + " "
+            time.sleep(0.015)
+        return
 
     payload = {
         "model": settings.OLLAMA_MODEL,
@@ -64,15 +79,18 @@ def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
             "temperature": 0.2
         }
     }
-    response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
-    if response.status_code != 200:
-        raise RuntimeError(f"Ollama generation failed: {response.text}")
-    for line in response.iter_lines():
-        if line:
-            chunk = json.loads(line.decode("utf-8"))
-            yield chunk.get("response", "")
-            if chunk.get("done", False):
-                break
+    try:
+        response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
+        if response.status_code != 200:
+            raise RuntimeError(f"Ollama generation failed: {response.text}")
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line.decode("utf-8"))
+                yield chunk.get("response", "")
+                if chunk.get("done", False):
+                    break
+    except Exception as e:
+        yield f"\n\n*(Ollama connection error: {str(e)})*"
 
 def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str, None, None]:
     """
@@ -123,7 +141,11 @@ def generate_response(prompt: str) -> dict:
 
     # Fallback to Ollama
     if not check_ollama_health():
-        raise RuntimeError("AI service unavailable: neither Google Gemini nor local Ollama is active.")
+        return {
+            "answer": "AI generation service is currently unavailable. Please configure GEMINI_API_KEY in your .env file or start local Ollama.",
+            "response_type": "insufficient_information",
+            "sources": []
+        }
 
     payload = {
         "model": settings.OLLAMA_MODEL,

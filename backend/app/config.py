@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     FAISS_DIR: str = os.getenv("FAISS_DIR", "./data/indexes")
 
     class Config:
-        env_file = "../.env" # Adjust relative to where it's run from
+        env_file = (
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env")),
+            ".env"
+        )
+        extra = "ignore"
 
 settings = Settings()
