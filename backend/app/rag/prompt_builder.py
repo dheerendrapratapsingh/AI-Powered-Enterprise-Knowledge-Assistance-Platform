@@ -1,17 +1,167 @@
-def build_prompt(question: str, context_chunks: list, conversation_history: list = None) -> str:
+from app.rag.intent import QueryIntent
+
+def format_history_section(conversation_history: list = None) -> str:
+    if not conversation_history:
+        return ""
+    formatted = []
+    for msg in conversation_history[-4:]:
+        role = "Student" if msg.get("role") == "user" else "Assistant"
+        formatted.append(f"{role}: {msg.get('content')}")
+    if formatted:
+        return "\nRecent Conversation History:\n" + "\n".join(formatted) + "\n"
+    return ""
+
+
+def build_conversational_prompt(question: str, conversation_history: list = None, intent: QueryIntent = QueryIntent.GREETING) -> str:
+    """
+    Builds a natural conversational prompt for greetings and general inquiries
+    without document grounding restrictions.
+    """
+    history_section = format_history_section(conversation_history)
+
+    prompt = f"""You are the VIT-AP AI Copilot, a friendly, professional, and intelligent campus assistant for VIT-AP University.
+
+Guidelines:
+1. Warmth & Tone: Be welcoming, articulate, courteous, and concise. Format your reply in clean, readable Markdown.
+2. Purpose & Identity:
+   - When greeted (e.g., 'Hello', 'Hi', 'Good morning'), greet the user warmly and invite them to ask about VIT-AP academic regulations, degree syllabi, hostel rules, or faculty directories.
+   - When asked about your identity or capabilities (e.g., 'Who are you?', 'What can you do?'), introduce yourself as the VIT-AP AI Copilot and summarize your capabilities:
+     • Academic Regulations & Syllabi: B.Tech CSE Core, CSBS, electives, credit structures, and grading policies.
+     • Hostel Regulations: Sunday outing timings, General Leave procedures, night attendance, and late return rules.
+     • Campus Directory: Faculty cabin locations, employee numbers, and department designations.
+     • Official Email Drafting: Formal email templates addressed to School Deans, Faculty, and Course Coordinators.
+   - When thanked (e.g., 'Thank you', 'Thanks'), reply with polite academic courtesy.
+   - When bid farewell, wish the student a productive academic day.
+3. Anti-Hallucination Boundary:
+   - Do NOT invent or guess specific unverified university policies or course codes in general conversation.
+   - If the student is asking for a specific policy, prompt them to ask specifically so official documents can be retrieved.
+4. Reply directly in helpful natural Markdown. Do not output raw JSON.
+
+{history_section}
+User: {question}
+
+VIT-AP Copilot:"""
+    return prompt
+
+
+def build_out_of_scope_prompt(question: str, conversation_history: list = None) -> str:
+    """
+    Builds a polite redirection prompt for non-university inquiries.
+    """
+    history_section = format_history_section(conversation_history)
+
+    prompt = f"""You are the VIT-AP AI Copilot.
+The user asked a query that is outside the scope of VIT-AP University affairs, regulations, or campus facilities.
+
+Guidelines:
+1. Politely and clearly inform the user that you are specialized specifically in official VIT-AP university knowledge (academic regulations, degree curricula, hostel rules, and staff directories).
+2. Do not attempt to answer off-topic queries (such as coding solutions, world trivia, entertainment, or politics).
+3. Suggest 3 helpful questions the student can ask you instead, for example:
+   - "What are the Programme Core courses for B.Tech CSE Core?"
+   - "What are the Sunday hostel outing return timings?"
+   - "Where is Dr. Hari Seetha's cabin and what is her designation?"
+4. Keep your tone polite, respectful, and concise in Markdown.
+
+{history_section}
+User Query: {question}
+
+VIT-AP Copilot:"""
+    return prompt
+
+
+def build_streaming_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE) -> str:
+    """
+    Builds the appropriate prompt for SSE streaming based on query intent.
+    """
+    if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
+        return build_conversational_prompt(question, conversation_history, intent)
+    elif intent == QueryIntent.OUT_OF_SCOPE:
+        return build_out_of_scope_prompt(question, conversation_history)
+
+    # University Knowledge / Staff Directory / Document Search
     context_text = "\n\n".join([
-        f"Source: {c.get('metadata', {}).get('document_name', 'Unknown')} | Category: {c.get('metadata', {}).get('category', 'General')}\n{c.get('text', '')}" 
+        f"Source: {c.get('metadata', {}).get('document_name', 'Unknown')}{(' (URL: ' + c.get('metadata', {}).get('source_url') + ')') if c.get('metadata', {}).get('source_url') and str(c.get('metadata', {}).get('source_url')).startswith('http') else ''} | Category: {c.get('metadata', {}).get('category', 'General')}\n{c.get('text', '')}" 
         for c in context_chunks
     ])
     
-    history_section = ""
-    if conversation_history:
-        formatted = []
-        for msg in conversation_history[-4:]:
-            role = "Student" if msg.get("role") == "user" else "Assistant"
-            formatted.append(f"{role}: {msg.get('content')}")
-        if formatted:
-            history_section = "\nRecent Conversation History:\n" + "\n".join(formatted) + "\n"
+    history_section = format_history_section(conversation_history)
+
+    prompt = f"""You are the VIT-AP Student AI Copilot.
+Answer the student's question based strictly on the provided VIT-AP policy context below.
+
+Rules:
+1. Strict Program & Category Precision:
+   - Pay close attention to the specific degree/branch asked (e.g., 'B.Tech CSE Core', 'B.Tech CSBS', 'B.Com', 'BBA', 'Dual Degree in Arts').
+   - Only report courses belonging to the requested degree and category (Programme Core, University Core, or Electives).
+   - If asked for courses with a specific code prefix (e.g., 'CSE', 'MGT', 'MAT', 'HUM', 'LAW'), only list courses matching that prefix.
+2. Faculty & Directory Inquiries:
+   - If asked about a faculty member (e.g., cabin number, employee ID, title, or department), provide the exact information directly and concisely from the context.
+3. Code-Title Accuracy:
+   - Strictly report exact course codes with their printed titles and credits. Never invent or swap codes.
+4. Ground Truth Authority:
+   - The provided Context takes 100% precedence over previous conversation history. Disregard any incorrect prior messages.
+5. Strict Anti-Hallucination & Fallback:
+   - Never invent, guess, or hallucinate policies, course codes, or faculty details.
+   - If the requested information is absent or not verified in the provided Context, state explicitly:
+     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+6. Email Drafting Capability:
+   - If the student asks to draft, write, or compose an email (e.g., to a dean, professor, coordinator, or warden), generate a polite, professional email draft in Markdown with:
+     - **Subject:** [Concise and formal]
+     - **To:** [Faculty or Office name/email from Context, or placeholder]
+     - **Body:** [Polite academic message structured into clear paragraphs]
+     - **Sign-off:** [Respectful closing with placeholders for student name and reg. no.]
+7. Presentation:
+   - For course lists: list each course on its own bullet line:
+     - **CODE**: Course Title (Credits)
+8. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
+
+Context:
+{context_text}
+{history_section}
+Student Question:
+{question}
+
+Assistant:"""
+    return prompt
+
+
+def build_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE) -> str:
+    """
+    Builds the prompt for JSON structured response endpoints.
+    """
+    if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
+        return f"""You are the VIT-AP AI Copilot.
+Answer the user's conversational query warmly, helpfully, and concisely in JSON.
+
+User: {question}
+
+Return ONLY a valid JSON object with the following structure:
+{{
+  "answer": "Your friendly response in markdown...",
+  "response_type": "greeting",
+  "sources": []
+}}
+"""
+
+    if intent == QueryIntent.OUT_OF_SCOPE:
+        return f"""You are the VIT-AP AI Copilot.
+The user asked an out-of-scope query ({question}).
+Politely explain that you specialize in official VIT-AP knowledge and suggest university questions they can ask.
+
+Return ONLY a valid JSON object with the following structure:
+{{
+  "answer": "Polite explanation and suggested university questions in markdown...",
+  "response_type": "out_of_scope",
+  "sources": []
+}}
+"""
+
+    context_text = "\n\n".join([
+        f"Source: {c.get('metadata', {}).get('document_name', 'Unknown')}{(' (URL: ' + c.get('metadata', {}).get('source_url') + ')') if c.get('metadata', {}).get('source_url') and str(c.get('metadata', {}).get('source_url')).startswith('http') else ''} | Category: {c.get('metadata', {}).get('category', 'General')}\n{c.get('text', '')}" 
+        for c in context_chunks
+    ])
+    
+    history_section = format_history_section(conversation_history)
 
     prompt = f"""You are the VIT-AP Student AI Copilot.
 Your job is to answer student questions using the provided VIT-AP knowledge context.
@@ -62,57 +212,4 @@ Return ONLY a valid JSON object with the following structure:
   ]
 }}
 """
-    return prompt
-
-def build_streaming_prompt(question: str, context_chunks: list, conversation_history: list = None) -> str:
-    context_text = "\n\n".join([
-        f"Source: {c.get('metadata', {}).get('document_name', 'Unknown')} | Category: {c.get('metadata', {}).get('category', 'General')}\n{c.get('text', '')}" 
-        for c in context_chunks
-    ])
-    
-    history_section = ""
-    if conversation_history:
-        formatted = []
-        for msg in conversation_history[-4:]:
-            role = "Student" if msg.get("role") == "user" else "Assistant"
-            formatted.append(f"{role}: {msg.get('content')}")
-        if formatted:
-            history_section = "\nRecent Conversation History:\n" + "\n".join(formatted) + "\n"
-
-    prompt = f"""You are the VIT-AP Student AI Copilot.
-Answer the student's question based strictly on the provided VIT-AP policy context below.
-
-Rules:
-1. Strict Program & Category Precision:
-   - Pay close attention to the specific degree/branch asked (e.g., 'B.Tech CSE Core', 'B.Tech CSBS', 'B.Com', 'BBA', 'Dual Degree in Arts').
-   - Only report courses belonging to the requested degree and category (Programme Core, University Core, or Electives).
-   - If asked for courses with a specific code prefix (e.g., 'CSE', 'MGT', 'MAT', 'HUM', 'LAW'), only list courses matching that prefix.
-2. Faculty & Directory Inquiries:
-   - If asked about a faculty member (e.g., cabin number, employee ID, title, or department), provide the exact information directly and concisely.
-3. Code-Title Accuracy:
-   - Strictly report exact course codes with their printed titles and credits. Never invent or swap codes.
-4. Ground Truth Authority:
-   - The provided Context takes 100% precedence over previous conversation history. Disregard any incorrect prior messages.
-5. Strict Anti-Hallucination & Fallback:
-   - Never invent, guess, or hallucinate policies, course codes, or faculty details.
-   - If the requested information is absent or not verified in the provided Context, state explicitly:
-     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
-6. Email Drafting Capability:
-   - If the student asks to draft, write, or compose an email (e.g., to a dean, professor, coordinator, or warden), generate a polite, professional email draft in Markdown with:
-     - **Subject:** [Concise and formal]
-     - **To:** [Faculty or Office name/email from Context, or placeholder]
-     - **Body:** [Polite academic message structured into clear paragraphs]
-     - **Sign-off:** [Respectful closing with placeholders for student name and reg. no.]
-7. Presentation:
-   - For course lists: list each course on its own bullet line:
-     - **CODE**: Course Title (Credits)
-8. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
-
-Context:
-{context_text}
-{history_section}
-Student Question:
-{question}
-
-Assistant:"""
     return prompt

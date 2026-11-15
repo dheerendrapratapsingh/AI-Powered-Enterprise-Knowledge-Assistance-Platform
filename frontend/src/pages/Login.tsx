@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
+import { Bot, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { login, register } from '../services/auth';
 import './Login.css';
 
 type RoleType = 'STUDENT' | 'ORG_ADMIN' | 'ADMIN';
 
-export default function Login({ onLogin }: { onLogin: () => void }) {
+interface LoginProps {
+  onLogin: () => void;
+  onBackToHome?: () => void;
+}
+
+export default function Login({ onLogin, onBackToHome }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleType>('STUDENT');
 
@@ -79,16 +85,20 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
   return (
     <div className="login-container">
-      <div className="glass-card">
+      {onBackToHome && (
+        <button className="back-home-btn" onClick={onBackToHome}>
+          <ArrowLeft size={16} /> Back to Overview
+        </button>
+      )}
+
+      <div className="glass-card-auth">
         {/* Branding Header */}
         <div className="logo-container">
-          <div className="logo-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
+          <div className="logo-icon-auth">
+            <Bot size={26} color="#FFFFFF" />
           </div>
-          <h2 className="title">VIT-AP Copilot</h2>
-          <p className="subtitle">Enterprise Knowledge Assistance Platform</p>
+          <h2 className="title-auth">VIT-AP AI Copilot</h2>
+          <p className="subtitle-auth">Enterprise Campus Knowledge Assistance Platform</p>
         </div>
 
         {/* Role Portal Selection Tabs */}
@@ -98,24 +108,24 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             className={`role-tab ${selectedRole === 'STUDENT' ? 'active' : ''}`}
             onClick={() => handleRoleSelect('STUDENT')}
           >
-            <span className="role-icon">🎓</span>
-            <span className="role-text">Student</span>
+            <span>🎓</span>
+            <span>Student</span>
           </button>
           <button 
             type="button"
             className={`role-tab ${selectedRole === 'ORG_ADMIN' ? 'active' : ''}`}
             onClick={() => handleRoleSelect('ORG_ADMIN')}
           >
-            <span className="role-icon">🏫</span>
-            <span className="role-text">Org Admin</span>
+            <span>🏫</span>
+            <span>Org Admin</span>
           </button>
           <button 
             type="button"
             className={`role-tab ${selectedRole === 'ADMIN' ? 'active' : ''}`}
             onClick={() => handleRoleSelect('ADMIN')}
           >
-            <span className="role-icon">⚙️</span>
-            <span className="role-text">Platform Admin</span>
+            <span>⚙️</span>
+            <span>Platform</span>
           </button>
         </div>
 
@@ -138,18 +148,18 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         </div>
 
         {/* Status Alerts */}
-        {error && <div className="error-banner">{error}</div>}
-        {success && <div className="success-banner">{success}</div>}
+        {error && <div className="error-banner-auth">{error}</div>}
+        {success && <div className="success-banner-auth">{success}</div>}
 
         {/* Authentication Form */}
         <form onSubmit={handleSubmit}>
           {isSignUp && (
             <>
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
+              <div className="form-group-auth">
+                <label className="form-label-auth">Full Name</label>
                 <input 
                   type="text" 
-                  className="form-input"
+                  className="form-input-auth"
                   value={name} 
                   onChange={e => setName(e.target.value)} 
                   placeholder="e.g. Rahul Sharma"
@@ -158,11 +168,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               </div>
 
               {selectedRole === 'STUDENT' && (
-                <div className="form-group">
-                  <label className="form-label">Registration / Student ID</label>
+                <div className="form-group-auth">
+                  <label className="form-label-auth">Registration Number (Student ID)</label>
                   <input 
                     type="text" 
-                    className="form-input"
+                    className="form-input-auth"
                     value={studentId} 
                     onChange={e => setStudentId(e.target.value)} 
                     placeholder="e.g. 22BCE1024"
@@ -172,13 +182,13 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             </>
           )}
 
-          <div className="form-group">
-            <label className="form-label">
+          <div className="form-group-auth">
+            <label className="form-label-auth">
               {selectedRole === 'STUDENT' ? 'Student Email' : 'Institutional Email'}
             </label>
             <input 
               type="email" 
-              className="form-input"
+              className="form-input-auth"
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               placeholder={selectedRole === 'STUDENT' ? 'name.reg@vitapstudent.ac.in' : 'admin@vitap.ac.in'}
@@ -186,11 +196,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Password</label>
+          <div className="form-group-auth">
+            <label className="form-label-auth">Password</label>
             <input 
               type="password" 
-              className="form-input"
+              className="form-input-auth"
               value={password} 
               onChange={e => setPassword(e.target.value)} 
               placeholder="••••••••"
@@ -199,11 +209,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           </div>
 
           {isSignUp && (
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
+            <div className="form-group-auth">
+              <label className="form-label-auth">Confirm Password</label>
               <input 
                 type="password" 
-                className="form-input"
+                className="form-input-auth"
                 value={confirmPassword} 
                 onChange={e => setConfirmPassword(e.target.value)} 
                 placeholder="••••••••"
@@ -212,37 +222,45 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             </div>
           )}
           
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading 
-              ? (isSignUp ? 'Creating Account...' : 'Authenticating...') 
-              : (isSignUp ? `Register as ${selectedRole === 'STUDENT' ? 'Student' : selectedRole === 'ORG_ADMIN' ? 'Org Admin' : 'Admin'}` : 'Sign In')}
+          <button type="submit" className="submit-btn-auth" disabled={loading}>
+            {loading ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Loader2 size={16} className="animate-spin" />
+                {isSignUp ? 'Creating Account...' : 'Authenticating...'}
+              </span>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} />
+                {isSignUp ? `Register as ${selectedRole === 'STUDENT' ? 'Student' : selectedRole === 'ORG_ADMIN' ? 'Org Admin' : 'Admin'}` : 'Sign In'}
+              </span>
+            )}
           </button>
         </form>
 
         {/* Demo Credentials Quick-Select */}
-        <div className="credentials-hint">
-          <p><strong>Quick Demo Access (Click to Fill):</strong></p>
-          <div className="demo-accounts-grid">
+        <div className="credentials-hint-auth">
+          <div className="credentials-label">Instant Demo Evaluation</div>
+          <div className="demo-accounts-grid-auth">
             <button 
               type="button" 
-              className="demo-pill"
+              className="demo-pill-auth"
               onClick={() => fillDemoAccount('STUDENT', 'student@vitap.ac.in', 'student123')}
             >
-              🎓 Student Demo
+              🎓 Student
             </button>
             <button 
               type="button" 
-              className="demo-pill"
+              className="demo-pill-auth"
               onClick={() => fillDemoAccount('ORG_ADMIN', 'org@vitap.ac.in', 'org123')}
             >
-              🏫 Org Admin Demo
+              🏫 Org Admin
             </button>
             <button 
               type="button" 
-              className="demo-pill"
+              className="demo-pill-auth"
               onClick={() => fillDemoAccount('ADMIN', 'admin@vitap.ac.in', 'admin123')}
             >
-              ⚙️ Platform Admin
+              ⚙️ Platform
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime, timezone
 import json
 import uuid
 
@@ -16,14 +17,16 @@ from app.schemas.chat import (
     Source, 
     FeedbackRequest,
     ConversationOut,
+    ConversationUpdate,
     MessageOut
 )
 from app.routers.auth import get_current_user
-from app.rag.pipeline import answer_question
+from app.rag.pipeline import answer_question, is_draft_email_intent, FALLBACK_MESSAGE
 from app.rag.retriever import retrieve_relevant_chunks
 from app.rag.prompt_builder import build_streaming_prompt
 from app.rag.llm_client import stream_response_tokens
 from app.rag.cache import get_cached_response, set_cached_response
+from app.rag.intent import classify_query_intent, QueryIntent, get_fast_conversational_response
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -52,6 +55,8 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_u
 
     user_msg = Message(conversation_id=conversation.id, role="user", content=request.question)
     db.add(user_msg)
+    conversation.updated_at = datetime.now(timezone.utc)
+    db.commit()
     
     # 1. Check Semantic Cache
     cached = get_cached_response(request.question, organization_id=current_user.organization_id)
@@ -109,12 +114,12 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_u
         ))
     db.commit()
 
-    if rag_result.get("response_type") == "answer":
+    if rag_result.get("response_type") in ("answer", "greeting"):
         set_cached_response(
             request.question,
             ai_msg.content,
             rag_result.get("sources", []),
-            response_type="answer",
+            response_type=rag_result.get("response_type"),
             organization_id=current_user.organization_id
         )
     
@@ -151,9 +156,10 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                 db.commit()
                 db.refresh(conv)
 
-            # Record user message
+            # Record user message & touch updated_at
             user_msg = Message(conversation_id=conv.id, role="user", content=question)
             db.add(user_msg)
+            conv.updated_at = datetime.now(timezone.utc)
             db.commit()
 
             # 1. Check Semantic Cache
@@ -164,7 +170,8 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                     "type": "metadata",
                     "conversation_id": conv.id,
                     "message_id": ai_message_id,
-                    "sources": cached.get("sources", [])
+                    "sources": cached.get("sources", []),
+                    "response_type": cached.get("response_type", "answer")
                 }
                 yield f"data: {json.dumps(metadata_packet)}\n\n"
 
@@ -198,7 +205,84 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             for pm in prev_msgs:
                 history.append({"role": pm.role, "content": pm.content})
 
-            # 2. Retrieve relevant chunks
+            # 2. Intent Classification & Routing
+            intent = classify_query_intent(question)
+            ai_message_id = str(uuid.uuid4())
+
+            # Path A: Greetings & General Conversation (Bypass FAISS & Grounding Fallback)
+            if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
+                metadata_packet = {
+                    "type": "metadata",
+                    "conversation_id": conv.id,
+                    "message_id": ai_message_id,
+                    "sources": [],
+                    "response_type": "greeting"
+                }
+                yield f"data: {json.dumps(metadata_packet)}\n\n"
+
+                fast_resp = get_fast_conversational_response(question)
+                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
+                collected_tokens = []
+                for token in stream_response_tokens(prompt, fast_text=fast_resp):
+                    collected_tokens.append(token)
+                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                full_answer = "".join(collected_tokens)
+
+                ai_msg = Message(
+                    id=ai_message_id,
+                    conversation_id=conv.id,
+                    role="assistant",
+                    content=full_answer,
+                    response_type="greeting"
+                )
+                db.add(ai_msg)
+                db.commit()
+
+                if full_answer:
+                    set_cached_response(
+                        question,
+                        full_answer,
+                        [],
+                        response_type="greeting",
+                        organization_id=current_user.organization_id
+                    )
+
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
+
+            # Path B: Out of Scope Queries (Bypass FAISS)
+            if intent == QueryIntent.OUT_OF_SCOPE:
+                metadata_packet = {
+                    "type": "metadata",
+                    "conversation_id": conv.id,
+                    "message_id": ai_message_id,
+                    "sources": [],
+                    "response_type": "out_of_scope"
+                }
+                yield f"data: {json.dumps(metadata_packet)}\n\n"
+
+                fast_resp = get_fast_conversational_response(question)
+                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
+                collected_tokens = []
+                for token in stream_response_tokens(prompt, fast_text=fast_resp):
+                    collected_tokens.append(token)
+                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                full_answer = "".join(collected_tokens)
+
+                ai_msg = Message(
+                    id=ai_message_id,
+                    conversation_id=conv.id,
+                    role="assistant",
+                    content=full_answer,
+                    response_type="out_of_scope"
+                )
+                db.add(ai_msg)
+                db.commit()
+
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
+
+            # Path C: University Knowledge, Document Search & Staff Directory
             chunks = retrieve_relevant_chunks(question)
             allowed_chunks = []
             for c in chunks:
@@ -212,6 +296,8 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             for c in allowed_chunks:
                 doc_id = c.get("metadata", {}).get("document_id", "")
                 doc_name = c.get("metadata", {}).get("document_name", "Unknown")
+                source_url = c.get("metadata", {}).get("source_url", "")
+                source_type = c.get("metadata", {}).get("source_type", "manual")
                 page = c.get("metadata", {}).get("page")
                 key = (doc_id, page)
                 if key not in seen_docs:
@@ -219,41 +305,35 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                     sources_list.append({
                         "document_id": doc_id,
                         "document_name": doc_name,
+                        "source_url": source_url,
+                        "source_type": source_type,
                         "page": page
                     })
-
-            ai_message_id = str(uuid.uuid4())
 
             # Yield metadata packet with sources immediately
             metadata_packet = {
                 "type": "metadata",
                 "conversation_id": conv.id,
                 "message_id": ai_message_id,
-                "sources": sources_list
+                "sources": sources_list,
+                "response_type": "answer" if allowed_chunks else "insufficient_information"
             }
             yield f"data: {json.dumps(metadata_packet)}\n\n"
 
             if not allowed_chunks:
-                q_lower = question.lower()
-                is_email = any(k in q_lower for k in [
-                    "draft an email", "compose an email", "write an email", 
-                    "draft email", "compose email", "write email", "send an email",
-                    "email template", "mail template", "draft a mail", "compose a mail"
-                ])
-                if not is_email:
-                    fallback_msg = "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+                if not is_draft_email_intent(question):
+                    fallback_msg = FALLBACK_MESSAGE
                     yield f"data: {json.dumps({'type': 'token', 'token': fallback_msg})}\n\n"
                     full_answer = fallback_msg
                 else:
-                    prompt = build_streaming_prompt(question, [], conversation_history=history)
+                    prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
                     collected_tokens = []
                     for token in stream_response_tokens(prompt):
                         collected_tokens.append(token)
                         yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
                     full_answer = "".join(collected_tokens)
             else:
-                # 3. Build streaming prompt & stream tokens
-                prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history)
+                prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history, intent=intent)
                 collected_tokens = []
                 for token in stream_response_tokens(prompt):
                     collected_tokens.append(token)
@@ -319,11 +399,15 @@ def get_conversation_messages(conversation_id: str, db: Session = Depends(get_db
         srcs = []
         for s in m.sources:
             doc_name = s.document.name if s.document else "Document"
+            src_url = s.document.source_url if (s.document and s.document.source_url) else None
+            src_type = s.document.source_type if (s.document and s.document.source_type) else "manual"
             srcs.append(Source(
                 document_id=s.document_id or "",
                 document_name=doc_name,
                 page=s.page_number,
-                relevance_score=s.relevance_score
+                relevance_score=s.relevance_score,
+                source_url=src_url,
+                source_type=src_type
             ))
         results.append(MessageOut(
             id=m.id,
@@ -334,6 +418,22 @@ def get_conversation_messages(conversation_id: str, db: Session = Depends(get_db
             sources=srcs
         ))
     return results
+
+@router.patch("/conversations/{conversation_id}", response_model=ConversationOut)
+def rename_conversation(conversation_id: str, payload: ConversationUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    conv = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    new_title = payload.title.strip()
+    if new_title:
+        conv.title = new_title[:100]
+        conv.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(conv)
+    return conv
 
 @router.delete("/conversations/{conversation_id}")
 def delete_conversation(conversation_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -346,6 +446,15 @@ def delete_conversation(conversation_id: str, db: Session = Depends(get_db), cur
     db.delete(conv)
     db.commit()
     return {"status": "success", "message": "Conversation deleted"}
+
+@router.delete("/conversations")
+def clear_all_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    convs = db.query(Conversation).filter(Conversation.user_id == current_user.id).all()
+    count = len(convs)
+    for c in convs:
+        db.delete(c)
+    db.commit()
+    return {"status": "success", "message": f"Cleared {count} conversations"}
 
 @router.post("/chat/feedback")
 def submit_feedback(request: FeedbackRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

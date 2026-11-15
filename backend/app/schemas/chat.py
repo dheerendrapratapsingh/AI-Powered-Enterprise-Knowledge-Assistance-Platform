@@ -11,6 +11,8 @@ class Source(BaseModel):
     document_name: str
     page: Optional[int] = None
     relevance_score: Optional[float] = None
+    source_url: Optional[str] = None
+    source_type: Optional[str] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -44,3 +46,6 @@ class ConversationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ConversationUpdate(BaseModel):
+    title: str

@@ -14,7 +14,7 @@ export async function sendMessageStream(
   question: string,
   conversationId: string | null | undefined,
   callbacks: {
-    onMetadata: (metadata: { conversation_id: string; message_id: string; sources: any[] }) => void;
+    onMetadata: (metadata: { conversation_id: string; message_id: string; sources: any[]; response_type?: string }) => void;
     onToken: (token: string) => void;
     onDone: () => void;
     onError: (error: string) => void;
@@ -112,6 +112,19 @@ export async function getConversationMessages(conversationId: string) {
 
 export async function deleteConversation(conversationId: string) {
   return fetchWithAuth(`/conversations/${conversationId}`, {
+    method: "DELETE"
+  });
+}
+
+export async function renameConversation(conversationId: string, title: string) {
+  return fetchWithAuth(`/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title })
+  });
+}
+
+export async function clearAllConversations() {
+  return fetchWithAuth("/conversations", {
     method: "DELETE"
   });
 }

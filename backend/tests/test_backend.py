@@ -9,7 +9,14 @@ from app.rag.cache import normalize_query, set_cached_response, get_cached_respo
 from app.rag.cleaner import clean_text
 from app.utils.security import get_password_hash, verify_password, create_access_token, ALGORITHM
 from app.models.document import Document
-from app.database.connection import SessionLocal
+from app.database.connection import SessionLocal, engine
+from app.database.base import Base
+import app.models.cache
+import app.models.document
+import app.models.user
+
+# Ensure database tables exist regardless of invocation working directory
+Base.metadata.create_all(bind=engine)
 from jose import jwt
 from app.config import settings
 

@@ -25,10 +25,10 @@ if (-not (Test-Path "backend\copilot.db")) {
 }
 
 Write-Host "Starting Backend API on http://127.0.0.1:8000 ..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; .\venv\Scripts\Activate.ps1; uvicorn app.main:app --reload"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "$Host.UI.RawUI.WindowTitle='VIT-AP Backend API'; Set-Location backend; $env:HF_HUB_OFFLINE='1'; .\venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 Write-Host "Starting Frontend Server on http://localhost:5173 ..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "$Host.UI.RawUI.WindowTitle='VIT-AP Frontend UI'; Set-Location frontend; npm run dev -- --host 0.0.0.0 --port 5173"
 
 Write-Host "All servers launched in separate windows!" -ForegroundColor Cyan
 Write-Host "Frontend will be available at: http://localhost:5173" -ForegroundColor Green

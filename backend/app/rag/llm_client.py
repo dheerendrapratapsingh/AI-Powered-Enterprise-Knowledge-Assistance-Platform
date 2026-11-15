@@ -57,7 +57,12 @@ def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
     payload = {
         "model": settings.OLLAMA_MODEL,
         "prompt": prompt,
-        "stream": True
+        "stream": True,
+        "options": {
+            "num_predict": 300,
+            "num_thread": 8,
+            "temperature": 0.2
+        }
     }
     response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
     if response.status_code != 200:
@@ -69,10 +74,10 @@ def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
             if chunk.get("done", False):
                 break
 
-def stream_response_tokens(prompt: str) -> Generator[str, None, None]:
+def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str, None, None]:
     """
     Streams tokens prioritizing Google Gemini 2.0 Flash (fast, cloud, zero GPU).
-    Seamlessly falls back to local Ollama if Gemini key is absent or unreachable.
+    Seamlessly falls back to fast conversational streaming or local Ollama if Gemini key is absent.
     """
     if check_gemini_configured():
         try:
@@ -80,6 +85,15 @@ def stream_response_tokens(prompt: str) -> Generator[str, None, None]:
             return
         except Exception as e:
             logger.warning(f"Google Gemini streaming failed ({e}), attempting Ollama fallback...")
+
+    # Fast-path for simple conversational / greeting queries when offline
+    if fast_text:
+        import time
+        words = fast_text.split(" ")
+        for i, word in enumerate(words):
+            yield word + (" " if i < len(words) - 1 else "")
+            time.sleep(0.015)
+        return
 
     yield from _stream_ollama_tokens(prompt)
 
@@ -115,7 +129,12 @@ def generate_response(prompt: str) -> dict:
         "model": settings.OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
-        "format": "json"
+        "format": "json",
+        "options": {
+            "num_predict": 300,
+            "num_thread": 8,
+            "temperature": 0.2
+        }
     }
     response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=60)
     if response.status_code != 200:

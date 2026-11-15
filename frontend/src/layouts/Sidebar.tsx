@@ -1,5 +1,17 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Building2, Users, Settings, Database, MessageSquare, Search } from 'lucide-react';
+import { 
+  Bot, 
+  MessageSquare, 
+  Database, 
+  Building2, 
+  LayoutDashboard, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight,
+  Sparkles
+} from 'lucide-react';
+import { getCurrentUser, logout } from '../services/auth';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {
@@ -7,103 +19,133 @@ interface SidebarProps {
 }
 
 export function Sidebar({ role }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then(u => setUser(u))
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
+  };
+
+  const getInitial = () => {
+    if (user?.name) return user.name.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    return 'U';
+  };
+
+  const formatRole = (r?: string) => {
+    if (!r) return role;
+    if (r === 'ADMIN') return 'Platform Admin';
+    if (r === 'ORG_ADMIN') return 'Org Admin';
+    return 'Student Member';
+  };
+
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+      {/* Sidebar Header */}
       <div className={styles.header}>
-        <div className={styles.logo}>
-          <div className={styles.logoIcon}></div>
-          <span className="gradient-text">NexaAI</span>
+        <div className={styles.brand} title="VIT-AP Copilot">
+          <div className={styles.logoIcon}>
+            <Bot size={20} color="#FFFFFF" />
+          </div>
+          {!collapsed && (
+            <div className={styles.brandInfo}>
+              <span className={styles.brandTitle}>VIT-AP Copilot</span>
+              <span className={styles.brandTenant}>VIT-AP University</span>
+            </div>
+          )}
         </div>
-        <div className={styles.tenantContext}>
-          {role === 'platform' && 'Platform Admin'}
-          {role === 'org' && 'Acme Corp Admin'}
-          {role === 'employee' && 'Acme Corp'}
-        </div>
+
+        <button 
+          className={styles.collapseBtn} 
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
+      {/* Navigation Links */}
       <nav className={styles.nav}>
-        {role === 'platform' && (
+        {role === 'employee' && (
           <>
-            <div className={styles.navSection}>Overview</div>
-            <NavLink to="/platform" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <LayoutDashboard size={18} />
-              Platform Dashboard
+            {!collapsed && <div className={styles.navSection}>AI Workspace</div>}
+            <NavLink to="/chat" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="AI Assistant">
+              <MessageSquare size={18} className={styles.linkIcon} />
+              {!collapsed && <span>AI Copilot Chat</span>}
             </NavLink>
-            <NavLink to="/platform/orgs" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Building2 size={18} />
-              Organizations
-            </NavLink>
-            <NavLink to="/platform/settings" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Settings size={18} />
-              System Settings
+            <NavLink to="/search" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Curriculum & Policy Search">
+              <Sparkles size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Knowledge Search</span>}
             </NavLink>
           </>
         )}
 
         {role === 'org' && (
           <>
-            <div className={styles.navSection}>Organization</div>
-            <NavLink to="/org" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <LayoutDashboard size={18} />
-              Dashboard
+            {!collapsed && <div className={styles.navSection}>Organization Portal</div>}
+            <NavLink to="/org" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Knowledge Overview">
+              <LayoutDashboard size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Org Dashboard</span>}
             </NavLink>
-            <NavLink to="/org/knowledge" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Database size={18} />
-              Knowledge Base
+            <NavLink to="/org/knowledge" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Document Knowledge Base">
+              <Database size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Document Base</span>}
             </NavLink>
-            <NavLink to="/org/users" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Users size={18} />
-              Users & Roles
-            </NavLink>
-            <NavLink to="/org/ai-config" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Settings size={18} />
-              AI Configuration
+            <NavLink to="/chat" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Test Copilot">
+              <MessageSquare size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Test AI Chat</span>}
             </NavLink>
           </>
         )}
 
-        {role === 'employee' && (
+        {role === 'platform' && (
           <>
-            <div className={styles.navSection}>Workspace</div>
-            <NavLink to="/chat" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <MessageSquare size={18} />
-              AI Assistant
+            {!collapsed && <div className={styles.navSection}>Platform Ecosystem</div>}
+            <NavLink to="/platform" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Platform Dashboard">
+              <LayoutDashboard size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Global Overview</span>}
             </NavLink>
-            <NavLink to="/search" className={({isActive}) => isActive ? styles.activeLink : styles.link}>
-              <Search size={18} />
-              Enterprise Search
+            <NavLink to="/platform/orgs" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Tenant Organizations">
+              <Building2 size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Tenants / Orgs</span>}
+            </NavLink>
+            <NavLink to="/org" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="University Knowledge">
+              <Database size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Knowledge Admin</span>}
+            </NavLink>
+            <NavLink to="/chat" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Student Chat">
+              <MessageSquare size={18} className={styles.linkIcon} />
+              {!collapsed && <span>Copilot Portal</span>}
             </NavLink>
           </>
         )}
       </nav>
-      
+
+      {/* Footer Profile Section */}
       <div className={styles.footer}>
         <div className={styles.userProfile}>
-          <div className={styles.avatar}>A</div>
-          <div className={styles.userInfo}>
-            <span className={styles.userName}>Active User</span>
-            <span className={styles.userRole}>{role}</span>
+          <div className={styles.avatar}>
+            {getInitial()}
           </div>
+          {!collapsed && (
+            <div className={styles.userInfo}>
+              <span className={styles.userName}>{user?.name || "Active Member"}</span>
+              <span className={styles.userRoleBadge}>{formatRole(user?.role)}</span>
+            </div>
+          )}
           <button 
-            onClick={() => {
-              localStorage.removeItem('token');
-              window.location.href = '/';
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '4px',
-              marginLeft: 'auto'
-            }}
-            title="Logout"
+            className={styles.logoutBtn} 
+            onClick={handleLogout} 
+            title="Sign out of Copilot"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
+            <LogOut size={16} />
           </button>
         </div>
       </div>

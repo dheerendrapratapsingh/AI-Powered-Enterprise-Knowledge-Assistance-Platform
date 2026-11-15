@@ -13,12 +13,16 @@ class Document(Base):
     filename = Column(String, nullable=False)
     category = Column(String, nullable=True)
     department = Column(String, nullable=True)
-    source_type = Column(String, nullable=True)
-    version = Column(String, nullable=True)
+    source_type = Column(String, default="manual") # manual, crawler
+    source_url = Column(String, nullable=True) # Web URL if crawled
+    content_hash = Column(String, nullable=True, index=True) # SHA-256 for deduplication
+    version = Column(String, default="1.0")
     access_level = Column(String, default="STUDENT") # STUDENT, FACULTY, ADMIN
-    file_path = Column(String, nullable=False)
-    status = Column(String, default="UPLOADED") # UPLOADED, PROCESSING, INDEXING, READY, FAILED
-    uploaded_by = Column(String, ForeignKey("users.id"))
+    file_path = Column(String, nullable=True) # May be null for direct web pages
+    status = Column(String, default="UPLOADED") # UPLOADED, PROCESSING, INDEXING, READY, FAILED, RETIRED
+    is_active = Column(Integer, default=1) # 1 = active in index, 0 = retired
+    error_message = Column(String, nullable=True)
+    uploaded_by = Column(String, ForeignKey("users.id"), nullable=True)
     page_count = Column(Integer, default=0)
     chunk_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

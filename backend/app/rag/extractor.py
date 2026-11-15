@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 import csv
 import pdfplumber
@@ -264,6 +264,50 @@ def extract_text_from_markdown(file_path: str) -> list:
         soup = BeautifulSoup(html, "html.parser")
         return [{"page_number": 1, "text": soup.get_text()}]
 
+def extract_text_from_pptx(file_path: str) -> list:
+    """
+    Extracts text, slide titles, and tables from PowerPoint presentations.
+    """
+    from pptx import Presentation
+    prs = Presentation(file_path)
+    slides_data = []
+    for idx, slide in enumerate(prs.slides):
+        slide_lines = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    line = paragraph.text.strip()
+                    if line:
+                        slide_lines.append(line)
+            elif shape.has_table:
+                for row in shape.table.rows:
+                    row_cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                    if row_cells:
+                        slide_lines.append(" | ".join(row_cells))
+        if slide_lines:
+            slides_data.append({
+                "page_number": idx + 1,
+                "text": f"## Slide {idx + 1}\n\n" + "\n".join(slide_lines)
+            })
+    if not slides_data:
+        slides_data.append({"page_number": 1, "text": "Empty presentation"})
+    return slides_data
+
+def extract_text_from_html(file_path_or_content: str) -> list:
+    """
+    Extracts clean readable text from HTML files or raw HTML strings.
+    """
+    if os.path.exists(file_path_or_content):
+        with open(file_path_or_content, "r", encoding="utf-8", errors="replace") as f:
+            html = f.read()
+    else:
+        html = file_path_or_content
+
+    soup = BeautifulSoup(html, "html.parser")
+    for s in soup(["script", "style", "nav", "footer", "iframe", "noscript"]):
+        s.decompose()
+    return [{"page_number": 1, "text": soup.get_text(separator="\n", strip=True)}]
+
 def extract_text(file_path: str) -> list:
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
@@ -274,9 +318,13 @@ def extract_text(file_path: str) -> list:
         return extract_text_from_xlsx(file_path)
     elif ext == ".docx":
         return extract_text_from_docx(file_path)
+    elif ext in [".pptx", ".ppt"]:
+        return extract_text_from_pptx(file_path)
+    elif ext in [".html", ".htm"]:
+        return extract_text_from_html(file_path)
     elif ext == ".txt":
         return extract_text_from_txt(file_path)
     elif ext == ".md":
         return extract_text_from_markdown(file_path)
     else:
-        raise ValueError(f"Unsupported file extension: {ext}. Supported types: PDF, CSV, XLSX, DOCX, TXT, MD")
+        raise ValueError(f"Unsupported file extension: {ext}. Supported types: PDF, CSV, XLSX, DOCX, PPTX, HTML, TXT, MD")

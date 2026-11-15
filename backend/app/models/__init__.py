@@ -6,3 +6,4 @@ from app.models.conversation import Conversation
 from app.models.message import Message, MessageSource
 from app.models.feedback import Feedback
 from app.models.cache import ResponseCache
+from app.models.crawler import CrawlConfig, CrawlJob, CrawledPage

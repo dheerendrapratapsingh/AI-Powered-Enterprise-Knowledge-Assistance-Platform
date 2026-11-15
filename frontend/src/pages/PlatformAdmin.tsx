@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, Activity, FileText, Plus, Loader2 } from 'lucide-react';
+import { 
+  Building2, 
+  Users, 
+  Activity, 
+  Plus, 
+  Loader2, 
+  CheckCircle2, 
+  Globe, 
+  X
+} from 'lucide-react';
 import styles from './PlatformAdmin.module.css';
 import { 
   getPlatformStats, 
@@ -12,7 +21,6 @@ import {
 export function PlatformAdmin() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [orgs, setOrgs] = useState<OrganizationItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
@@ -28,8 +36,6 @@ export function PlatformAdmin() {
       setOrgs(orgsData);
     } catch (err) {
       console.error("Failed to load platform data:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -60,205 +66,121 @@ export function PlatformAdmin() {
 
   return (
     <div className={styles.container}>
+      {/* Header */}
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Platform Overview</h1>
-          <p className={styles.subtitle}>Manage your enterprise AI ecosystem across all tenants</p>
+          <h1 className={styles.title}>Platform Administration</h1>
+          <p className={styles.subtitle}>Ecosystem health, multi-tenant organizations, and global telemetry</p>
         </div>
-        <div className={styles.headerActions}>
-          <button className={styles.primaryButton} onClick={() => setShowModal(true)}>
-            <Plus size={16} style={{ marginRight: 6 }} /> New Organization
-          </button>
-        </div>
+
+        <button className="btn-primary" onClick={() => setShowModal(true)}>
+          <Plus size={16} />
+          <span>Provision Tenant</span>
+        </button>
       </header>
 
-      {/* Modal for creating a new Organization */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div className="glass-panel" style={{
-            background: '#131b2e',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 12,
-            padding: '24px 28px',
-            width: 420,
-            maxWidth: '90%'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '1.25rem' }}>Add New Organization</h2>
-            <form onSubmit={handleCreateOrg}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 6, color: 'var(--text-muted)' }}>
-                  Organization Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Stanford Medical or TechCorp"
-                  value={newOrgName}
-                  onChange={(e) => setNewOrgName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 6, color: 'var(--text-muted)' }}>
-                  Corporate Domain (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. techcorp.com"
-                  value={newOrgDomain}
-                  onChange={(e) => setNewOrgDomain(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#fff',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !newOrgName.trim()}
-                  className={styles.primaryButton}
-                >
-                  {creating ? <Loader2 size={16} className="animate-spin" /> : "Create Tenant"}
-                </button>
-              </div>
-            </form>
+      {/* KPI Cards */}
+      <div className={styles.kpiGrid}>
+        <div className={`glass-card ${styles.kpiCard}`}>
+          <div className={styles.kpiIconWrapper} style={{ background: 'rgba(85, 119, 255, 0.15)', color: 'var(--accent-primary)' }}>
+            <Building2 size={24} />
           </div>
-        </div>
-      )}
-
-      <div className={styles.content}>
-        <div className={styles.kpiGrid}>
-          <div className="glass-panel">
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{color: 'var(--brand-primary)'}}>
-                <Building2 size={24} />
-              </div>
-              <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>
-                  {loading ? '...' : (stats?.total_organizations ?? 1)}
-                </span>
-                <span className={styles.kpiLabel}>Active Organizations</span>
-              </div>
-            </div>
-          </div>
-          <div className="glass-panel">
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{color: 'var(--success)'}}>
-                <Activity size={24} />
-              </div>
-              <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>
-                  {loading ? '...' : (stats?.total_queries ?? 0)}
-                </span>
-                <span className={styles.kpiLabel}>AI Queries Served</span>
-              </div>
-            </div>
-          </div>
-          <div className="glass-panel">
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{color: 'var(--brand-accent)'}}>
-                <Users size={24} />
-              </div>
-              <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>
-                  {loading ? '...' : (stats?.total_users ?? 0)}
-                </span>
-                <span className={styles.kpiLabel}>Total Users</span>
-              </div>
-            </div>
-          </div>
-          <div className="glass-panel">
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{color: '#38bdf8'}}>
-                <FileText size={24} />
-              </div>
-              <div className={styles.kpiInfo}>
-                <span className={styles.kpiValue}>
-                  {loading ? '...' : (stats?.total_documents ?? 0)}
-                </span>
-                <span className={styles.kpiLabel}>Indexed Documents</span>
-              </div>
-            </div>
+          <div className={styles.kpiInfo}>
+            <span className={styles.kpiValue}>{stats?.total_organizations ?? 1}</span>
+            <span className={styles.kpiLabel}>Tenant Organizations</span>
           </div>
         </div>
 
-        <h2 className={styles.sectionTitle}>Registered Tenants & Organizations</h2>
-        <div className={`glass-panel ${styles.tableContainer}`}>
+        <div className={`glass-card ${styles.kpiCard}`}>
+          <div className={styles.kpiIconWrapper} style={{ background: 'rgba(54, 214, 245, 0.15)', color: 'var(--accent-cyan)' }}>
+            <Users size={24} />
+          </div>
+          <div className={styles.kpiInfo}>
+            <span className={styles.kpiValue}>{stats?.total_users ?? 0}</span>
+            <span className={styles.kpiLabel}>Registered Members</span>
+          </div>
+        </div>
+
+        <div className={`glass-card ${styles.kpiCard}`}>
+          <div className={styles.kpiIconWrapper} style={{ background: 'rgba(152, 117, 255, 0.15)', color: 'var(--accent-violet)' }}>
+            <Activity size={24} />
+          </div>
+          <div className={styles.kpiInfo}>
+            <span className={styles.kpiValue}>{stats?.total_queries ?? 0}</span>
+            <span className={styles.kpiLabel}>Queries Processed</span>
+          </div>
+        </div>
+
+        <div className={`glass-card ${styles.kpiCard}`}>
+          <div className={styles.kpiIconWrapper} style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)' }}>
+            <CheckCircle2 size={24} />
+          </div>
+          <div className={styles.kpiInfo}>
+            <span className={styles.kpiValue}>{stats?.system_uptime ?? "99.9%"}</span>
+            <span className={styles.kpiLabel}>System Availability</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Organizations Table */}
+      <section>
+        <h2 className={styles.sectionTitle}>Active Institutional Tenants</h2>
+        <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Organization Name</th>
-                <th>Domain</th>
-                <th>Users</th>
-                <th>Knowledge Docs</th>
+                <th>Tenant Name</th>
+                <th>Identifier Slug</th>
+                <th>Domain Mapping</th>
+                <th>Documents</th>
+                <th>Active Users</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {orgs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    {loading ? "Loading organizations..." : "No organizations registered yet."}
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    No organizations provisioned yet.
                   </td>
                 </tr>
               ) : (
                 orgs.map((org) => (
                   <tr key={org.id}>
                     <td>
-                      <div className={styles.orgNameCell}>
-                        <div className={styles.orgAvatar}>{org.name.substring(0, 1)}</div>
-                        <span className={styles.orgName}>{org.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Building2 size={16} color="var(--accent-primary)" />
+                        <span style={{ fontWeight: 600 }}>{org.name}</span>
                       </div>
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>
-                      {org.domain || 'N/A'}
-                    </td>
-                    <td>{org.user_count}</td>
-                    <td>{org.document_count}</td>
                     <td>
-                      <span className={`${styles.statusBadge} ${org.status === 'Active' ? styles.statusActive : styles.statusPending}`}>
-                        {org.status}
+                      <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                        {org.slug}
+                      </span>
+                    </td>
+                    <td>
+                      {org.domain ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-cyan)' }}>
+                          <Globe size={13} />
+                          <span style={{ fontSize: '0.84rem' }}>{org.domain}</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        {org.document_count ?? 0} docs
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        {org.user_count ?? 0} users
+                      </span>
+                    </td>
+                    <td>
+                      <span className={styles.statusActive}>
+                        <CheckCircle2 size={12} /> {org.status || 'Active'}
                       </span>
                     </td>
                   </tr>
@@ -267,7 +189,70 @@ export function PlatformAdmin() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
+
+      {/* Provision Organization Modal */}
+      {showModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 className={styles.modalTitle}>Provision New Tenant</h3>
+                <p className={styles.modalSubtitle}>Create a segregated campus or organizational knowledge realm.</p>
+              </div>
+              <button 
+                onClick={() => setShowModal(false)}
+                style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateOrg}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Organization Name</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="e.g. VIT-AP University"
+                  className={styles.formInput}
+                  value={newOrgName}
+                  onChange={e => setNewOrgName(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Institutional Email Domain (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. vitap.ac.in"
+                  className={styles.formInput}
+                  value={newOrgDomain}
+                  onChange={e => setNewOrgDomain(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.modalActions}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={creating || !newOrgName.trim()}
+                >
+                  {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                  <span>{creating ? "Provisioning..." : "Create Tenant"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,9 @@
+import os
 import threading
 from app.config import settings
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 _model = None
 _model_lock = threading.Lock()
