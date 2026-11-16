@@ -14,11 +14,18 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
     if index_manager.index.ntotal == 0:
         return []
 
-    query_embedding = generate_embedding(question)
+    q_lower = question.lower()
+
+    # Contextualize ambiguous/relative campus queries lacking university mentions
+    search_q = question
+    if not any(k in q_lower for k in ["vit", "vit-ap", "vitap", "university"]):
+        search_q = f"VIT-AP University {question}"
+
+    query_embedding = generate_embedding(search_q)
     query_np = np.array([query_embedding]).astype('float32')
     faiss.normalize_L2(query_np)
 
-    k_to_search = min(top_k * 3, index_manager.index.ntotal)
+    k_to_search = min(max(top_k * 6, 30), index_manager.index.ntotal)
     distances, indices = index_manager.index.search(query_np, k_to_search)
 
     candidates = []
@@ -33,8 +40,6 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         item = chunk_data.copy()
         item["score"] = float(dist)
         candidates.append(item)
-
-    q_lower = question.lower()
 
     # 1. Faculty / Directory query detection
     faculty_keywords = ["cabin", "faculty", "professor", "prof", "dr.", "dr ", "emp no", "employee", "contact", "who is", "where is", "department of", "apc"]
@@ -71,6 +76,16 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
     elif "hostel" in q_lower or "outing" in q_lower or "mess" in q_lower or "curfew" in q_lower:
         hostel = [c for c in candidates if "hostel" in c.get("metadata", {}).get("document_name", "").lower() or "hostel" in c.get("text", "").lower()]
         if hostel: candidates = hostel
+
+    # 3. Location / Address / Campus Contact detection
+    loc_keywords = ["address", "location", "located", "where is", "how to reach", "directions", "city", "amaravati", "situated", "pincode", "postal", "campus address"]
+    if any(k in q_lower for k in loc_keywords):
+        loc_candidates = [
+            c for c in candidates 
+            if any(term in c.get("text", "").lower() for term in ["amaravati", "beside ap secretariat", "522241", "andhra pradesh", "inavolu", "contact us"])
+        ]
+        if loc_candidates:
+            candidates = loc_candidates + [c for c in candidates if c not in loc_candidates]
 
     results = []
     for item in candidates:

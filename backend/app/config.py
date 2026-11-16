@@ -1,8 +1,10 @@
 import os
 from pydantic_settings import BaseSettings
 
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 class Settings(BaseSettings):
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./copilot.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(BACKEND_DIR, 'copilot.db')}")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "your_jwt_secret_key_here")
 
     # Cloud LLM Engine (Google Gemini - Zero GPU required)
@@ -18,11 +20,11 @@ class Settings(BaseSettings):
     CACHE_SIMILARITY_THRESHOLD: float = float(os.getenv("CACHE_SIMILARITY_THRESHOLD", "0.95"))
 
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
-    TOP_K: int = int(os.getenv("TOP_K", "2"))
+    TOP_K: int = int(os.getenv("TOP_K", "4"))
     SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.20"))
     MAX_CONTEXT_CHUNKS: int = int(os.getenv("MAX_CONTEXT_CHUNKS", "5"))
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./data/documents")
-    FAISS_DIR: str = os.getenv("FAISS_DIR", "./data/indexes")
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(BACKEND_DIR, "data", "documents"))
+    FAISS_DIR: str = os.getenv("FAISS_DIR", os.path.join(BACKEND_DIR, "data", "indexes"))
 
     class Config:
         env_file = (
