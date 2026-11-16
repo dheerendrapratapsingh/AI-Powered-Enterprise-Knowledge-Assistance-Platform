@@ -124,9 +124,16 @@ Both manual uploads and crawled pages/PDFs feed into the exact same `IngestionSe
 
 ---
 
-### C. UI/UX SaaS Redesign
-- **Animated 3D AI Visualization:** Replaced the static neural sphere with an interactive, glowing 3D particle orb.
-- **Premium Chat Composer:** Floating input bar with subtle glowing borders, responsive layout across all devices, and an abortable SSE streaming stop controller.
+### C. UI/UX SaaS Redesign & 3D Interactive Visuals
+- **Interactive Three.js 3D Space & Cyber-Grid Background (`Space3DBackground.tsx`):**
+  - High-performance WebGL 3D background featuring hundreds of drifting depth-layered particles in cyber-cyan (`#36D6F5`), electric indigo (`#5577FF`), and violet (`#9875FF`).
+  - **Dynamic Interactive Parallax:** Camera gently rotates and tracks cursor movement in real time with spring damping, producing true 3D visual depth behind the chat cards and welcome area.
+  - **3D Neural Constellation Strands:** Real-time geometric line connections between drifting particles that dynamically bridge and disconnect as particles float in 3D volume.
+  - **Undulating 3D Cyber-Grid Horizon:** A perspective wireframe ground terrain undulating with smooth mathematical sine/cosine ripples at 60fps.
+  - Seamlessly layered into both the **Student Chat Interface** (`EmployeeChat.tsx`) and the **Public Landing Page** (`LandingPage.tsx`).
+- **Animated 3D AI Holographic Orb (`AI3DOrb.tsx`):** Core holographic wireframe icosahedron with glowing cyan inner core and interactive cursor rotation.
+- **3D Card Perspective Depth:** Added 3D perspective transforms (`perspective: 1000px; transform-style: preserve-3d;`) with smooth lift and lighting shimmers on hover for starter prompt cards, AI response bubbles, and admin stat tiles.
+- **Premium Floating Chat Composer:** Floating input bar with frosted glassmorphism, responsive mobile layouts, and an abortable SSE streaming stop controller.
 - **Sidebar & Dialogue History:** Collapsible conversation history sidebar with active indicator, conversation renaming, and single-click clear functionality.
 - **Knowledge Management Portal (`OrgAdmin.tsx`):** Dual-tab interface ("Manual Ingestion" and "Website Crawler") with real-time KPI metrics, upload dropzone, crawler configuration controls, live log terminal, and discovered URL inspector.
 
