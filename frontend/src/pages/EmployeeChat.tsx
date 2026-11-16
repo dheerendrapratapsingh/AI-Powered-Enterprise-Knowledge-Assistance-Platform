@@ -24,6 +24,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { AI3DOrb } from '../components/AI3DOrb';
+import { Space3DBackground } from '../components/Space3DBackground';
 import styles from './EmployeeChat.module.css';
 import { 
   sendMessageStream, 
@@ -476,6 +477,12 @@ export function EmployeeChat() {
 
       {/* Main Chat Workspace */}
       <div className={styles.chatArea}>
+        <Space3DBackground 
+          opacity={messages.length === 0 ? 0.85 : 0.38} 
+          showGrid={true} 
+          interactive={true} 
+        />
+
         {/* Sub-Header Bar on Canvas */}
         <div className={styles.canvasHeader}>
           <div className={styles.canvasHeaderLeft}>

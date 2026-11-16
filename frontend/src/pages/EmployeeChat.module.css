@@ -345,6 +345,8 @@
   padding: 1.5rem 2rem 2.5rem;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 2;
 }
 
 /* ==========================================================================
@@ -416,6 +418,8 @@
   transition: all var(--duration-normal) var(--ease-spring);
   position: relative;
   overflow: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
 }
 
 .starterCard::before {
@@ -425,14 +429,14 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, rgba(54, 214, 245, 0.4), transparent);
 }
 
 .starterCard:hover {
-  background: rgba(85, 119, 255, 0.14);
-  border-color: rgba(85, 119, 255, 0.48);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(85, 119, 255, 0.18);
+  background: rgba(85, 119, 255, 0.16);
+  border-color: rgba(54, 214, 245, 0.5);
+  transform: translateY(-4px) scale(1.012) rotateX(1.5deg);
+  box-shadow: 0 16px 36px -8px rgba(54, 214, 245, 0.2), 0 0 25px rgba(85, 119, 255, 0.15);
 }
 
 .starterLeft {

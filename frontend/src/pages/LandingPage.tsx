@@ -1,6 +1,6 @@
 import { ArrowRight, Bot, ShieldCheck, Zap, Database, CheckCircle2, BookOpen, MapPin, Mail, Layers } from 'lucide-react';
 import { AI3DOrb } from '../components/AI3DOrb';
-import { KnowledgeNetworkBg } from '../components/KnowledgeNetworkBg';
+import { Space3DBackground } from '../components/Space3DBackground';
 import styles from './LandingPage.module.css';
 
 interface LandingPageProps {
@@ -19,7 +19,7 @@ export function LandingPage({ onGetStarted, onSelectPrompt }: LandingPageProps) 
 
   return (
     <div className={styles.landingContainer}>
-      <KnowledgeNetworkBg />
+      <Space3DBackground opacity={0.85} showGrid={true} interactive={true} particleCount={320} />
 
       {/* Navigation Header */}
       <header className={styles.navbar}>
