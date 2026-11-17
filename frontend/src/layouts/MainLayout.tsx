@@ -1,3 +1,4 @@
+import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Zap, ChevronRight } from 'lucide-react';
@@ -5,14 +6,26 @@ import styles from './MainLayout.module.css';
 
 interface MainLayoutProps {
   role: 'platform' | 'org' | 'employee';
+  children?: React.ReactNode;
 }
 
-export function MainLayout({ role }: MainLayoutProps) {
+export function MainLayout({ role, children }: MainLayoutProps) {
   const location = useLocation();
+
+  const isChatRoute = location.pathname.startsWith('/chat') || location.pathname.startsWith('/copilot');
+
+  // Full-viewport immersion for chat workspace with its unified single sidebar
+  if (isChatRoute) {
+    return (
+      <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        {children || <Outlet />}
+      </div>
+    );
+  }
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path.includes('/chat')) return 'AI Copilot Assistant';
+    if (path.includes('/chat') || path.includes('/copilot')) return 'AI Copilot Assistant';
     if (path.includes('/search')) return 'Knowledge Search';
     if (path.includes('/org/knowledge')) return 'Knowledge Base Documents';
     if (path.includes('/org')) return 'Organization Dashboard';
@@ -35,17 +48,17 @@ export function MainLayout({ role }: MainLayoutProps) {
           </div>
 
           <div className={styles.topbarActions}>
-            <div className={styles.engineIndicator} title="Primary LLM: Google Gemini 2.0 Flash with local Ollama fallback">
+            <div className={styles.engineIndicator} title="System Status: Operational">
               <span className={styles.engineDot}></span>
               <Zap size={12} color="var(--accent-cyan)" />
-              <span>Gemini 2.0 Flash</span>
+              <span>Campus AI Active</span>
             </div>
           </div>
         </header>
 
         {/* Dynamic Route Content */}
         <main className={styles.mainView}>
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>

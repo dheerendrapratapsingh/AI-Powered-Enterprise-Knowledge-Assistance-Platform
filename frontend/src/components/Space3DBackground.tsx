@@ -8,11 +8,16 @@ interface Space3DBackgroundProps {
   particleCount?: number;
 }
 
+/**
+ * Premium 3D Atmospheric Spatial Background
+ * Multi-layered dark aesthetic, fine interconnected knowledge nodes,
+ * subtle volumetric ambient lighting, and smooth cursor parallax.
+ * Designed to provide deep visual richness without cluttering or degrading readability.
+ */
 export function Space3DBackground({
   opacity = 0.75,
-  showGrid = true,
   interactive = true,
-  particleCount = 260
+  particleCount = 180
 }: Space3DBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -20,15 +25,17 @@ export function Space3DBackground({
     const container = containerRef.current;
     if (!container) return;
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // --- Scene Setup ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x060a17, 0.045);
+    scene.fog = new THREE.FogExp2(0x040711, 0.038);
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
-    camera.position.set(0, 1.2, 11);
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+    camera.position.set(0, 0.5, 12);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -40,54 +47,44 @@ export function Space3DBackground({
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
-    // --- Lighting ---
-    const ambientLight = new THREE.AmbientLight(0x0b132b, 1.2);
+    // --- Ambient & Accent Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x080f24, 1.5);
     scene.add(ambientLight);
 
-    const cyanPoint = new THREE.PointLight(0x36d6f5, 3.5, 30);
-    cyanPoint.position.set(5, 4, 8);
+    const cyanPoint = new THREE.PointLight(0x38bdf8, 2.5, 35);
+    cyanPoint.position.set(6, 5, 8);
     scene.add(cyanPoint);
 
-    const violetPoint = new THREE.PointLight(0x9875ff, 3.5, 30);
-    violetPoint.position.set(-6, -3, 6);
+    const violetPoint = new THREE.PointLight(0x818cf8, 2.2, 35);
+    violetPoint.position.set(-7, -4, 6);
     scene.add(violetPoint);
 
-    // --- 1. 3D Floating Particle Nebula ---
-    const pCount = particleCount;
+    // --- 1. Foreground Knowledge Network Particles ---
+    const pCount = Math.min(particleCount, 220);
     const pGeo = new THREE.BufferGeometry();
     const pPositions = new Float32Array(pCount * 3);
-    const pBasePositions = new Float32Array(pCount * 3);
-    const pColors = new Float32Array(pCount * 3);
     const pVelocities = new Float32Array(pCount * 3);
+    const pColors = new Float32Array(pCount * 3);
 
-    const colorPalette = [
-      new THREE.Color(0x36d6f5), // Cyan
-      new THREE.Color(0x5577ff), // Electric Blue
-      new THREE.Color(0x9875ff), // Purple / Indigo
-      new THREE.Color(0x38bdf8), // Sky
-      new THREE.Color(0x818cf8)  // Lavender
+    const palette = [
+      new THREE.Color(0x38bdf8), // Cyan
+      new THREE.Color(0x60a5fa), // Blue
+      new THREE.Color(0x818cf8), // Soft Violet
+      new THREE.Color(0xa5b4fc), // Lavender
+      new THREE.Color(0x34d399)  // Mint Accent
     ];
 
     for (let i = 0; i < pCount; i++) {
       const idx = i * 3;
-      // Distribute in a 3D box around the camera view
-      const x = (Math.random() - 0.5) * 26;
-      const y = (Math.random() - 0.5) * 16;
-      const z = (Math.random() - 0.5) * 18 - 2;
+      pPositions[idx] = (Math.random() - 0.5) * 28;
+      pPositions[idx + 1] = (Math.random() - 0.5) * 18;
+      pPositions[idx + 2] = (Math.random() - 0.5) * 16 - 2;
 
-      pPositions[idx] = x;
-      pPositions[idx + 1] = y;
-      pPositions[idx + 2] = z;
+      pVelocities[idx] = (Math.random() - 0.5) * 0.0035;
+      pVelocities[idx + 1] = (Math.random() - 0.5) * 0.0035;
+      pVelocities[idx + 2] = (Math.random() - 0.5) * 0.0025;
 
-      pBasePositions[idx] = x;
-      pBasePositions[idx + 1] = y;
-      pBasePositions[idx + 2] = z;
-
-      pVelocities[idx] = (Math.random() - 0.5) * 0.006;
-      pVelocities[idx + 1] = (Math.random() - 0.5) * 0.006;
-      pVelocities[idx + 2] = (Math.random() - 0.5) * 0.004;
-
-      const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+      const col = palette[Math.floor(Math.random() * palette.length)];
       pColors[idx] = col.r;
       pColors[idx + 1] = col.g;
       pColors[idx + 2] = col.b;
@@ -96,7 +93,7 @@ export function Space3DBackground({
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
 
-    // Circular glowing particle texture
+    // High-precision circular glowing particle canvas texture
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;
@@ -104,8 +101,8 @@ export function Space3DBackground({
     if (ctx) {
       const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
       grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      grad.addColorStop(0.25, 'rgba(54, 214, 245, 0.85)');
-      grad.addColorStop(0.65, 'rgba(85, 119, 255, 0.35)');
+      grad.addColorStop(0.2, 'rgba(56, 189, 248, 0.85)');
+      grad.addColorStop(0.55, 'rgba(99, 102, 241, 0.25)');
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 64, 64);
@@ -113,11 +110,11 @@ export function Space3DBackground({
     const particleTexture = new THREE.CanvasTexture(canvas);
 
     const pMat = new THREE.PointsMaterial({
-      size: 0.28,
+      size: 0.22,
       vertexColors: true,
       map: particleTexture,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.75,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -125,8 +122,8 @@ export function Space3DBackground({
     const particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // --- 2. 3D Neural Constellation Connection Lines ---
-    const maxConnections = 180;
+    // --- 2. Dynamic Interconnected Knowledge Strands ---
+    const maxConnections = 140;
     const lineGeo = new THREE.BufferGeometry();
     const linePositions = new Float32Array(maxConnections * 2 * 3);
     const lineColors = new Float32Array(maxConnections * 2 * 3);
@@ -136,7 +133,7 @@ export function Space3DBackground({
     const lineMat = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.22,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -144,42 +141,31 @@ export function Space3DBackground({
     const connectionLines = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(connectionLines);
 
-    // --- 3. Undulating 3D Cyber-Grid Horizon (Terrain Floor) ---
-    let gridMesh: THREE.Mesh | null = null;
-    let gridGeo: THREE.PlaneGeometry | null = null;
-    let originalGridY: Float32Array | null = null;
-
-    if (showGrid) {
-      gridGeo = new THREE.PlaneGeometry(36, 36, 34, 34);
-      gridGeo.rotateX(-Math.PI / 2.2);
-      gridGeo.translate(0, -4.8, -4);
-
-      const count = gridGeo.attributes.position.count;
-      originalGridY = new Float32Array(count);
-      for (let i = 0; i < count; i++) {
-        originalGridY[i] = gridGeo.attributes.position.getY(i);
-      }
-
-      const gridMat = new THREE.MeshStandardMaterial({
-        color: 0x1b2d5a,
-        emissive: 0x224888,
-        emissiveIntensity: 0.45,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.22,
-        roughness: 0.5,
-        metalness: 0.8
-      });
-
-      gridMesh = new THREE.Mesh(gridGeo, gridMat);
-      scene.add(gridMesh);
+    // --- 3. Distant Ambient Deep-Space Dust ---
+    const starCount = 120;
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPos[i * 3] = (Math.random() - 0.5) * 45;
+      starPos[i * 3 + 1] = (Math.random() - 0.5) * 35;
+      starPos[i * 3 + 2] = -12 - Math.random() * 20;
     }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({
+      color: 0x94a3b8,
+      size: 0.08,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending
+    });
+    const starPoints = new THREE.Points(starGeo, starMat);
+    scene.add(starPoints);
 
-    // --- Interactive Mouse Dynamics & Parallax ---
+    // --- Interactive Mouse Parallax ---
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!interactive) return;
+      if (!interactive || prefersReducedMotion) return;
       const rect = container.getBoundingClientRect();
       const clientX = e.clientX - rect.left;
       const clientY = e.clientY - rect.top;
@@ -187,9 +173,11 @@ export function Space3DBackground({
       mouse.targetY = -(clientY / rect.height) * 2 + 1;
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    if (interactive && !prefersReducedMotion) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
 
-    // --- Resize Handler ---
+    // --- Window Resize ---
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth || window.innerWidth;
@@ -203,51 +191,53 @@ export function Space3DBackground({
 
     // --- Animation Loop ---
     let animId: number;
-    let startTime = performance.now();
+    let clock = new THREE.Clock();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
 
-      const currentTime = performance.now();
-      const elapsed = (currentTime - startTime) * 0.001;
+      const elapsed = clock.getElapsedTime();
+      const motionMultiplier = prefersReducedMotion ? 0.05 : 1.0;
 
       // Smooth camera parallax
-      mouse.x += (mouse.targetX - mouse.x) * 0.045;
-      mouse.y += (mouse.targetY - mouse.y) * 0.045;
+      mouse.x += (mouse.targetX - mouse.x) * 0.038;
+      mouse.y += (mouse.targetY - mouse.y) * 0.038;
 
-      camera.position.x = mouse.x * 1.6;
-      camera.position.y = 1.2 + mouse.y * 1.0;
+      camera.position.x = mouse.x * 1.4;
+      camera.position.y = 0.5 + mouse.y * 0.9;
       camera.lookAt(0, 0, -2);
 
-      // Subtle light oscillation
-      cyanPoint.position.x = 5 + Math.sin(elapsed * 0.6) * 2;
-      cyanPoint.position.y = 4 + Math.cos(elapsed * 0.8) * 1.5;
-      violetPoint.position.x = -6 + Math.cos(elapsed * 0.5) * 2;
+      // Subtle light drift
+      cyanPoint.position.x = 6 + Math.sin(elapsed * 0.5 * motionMultiplier) * 2;
+      cyanPoint.position.y = 5 + Math.cos(elapsed * 0.7 * motionMultiplier) * 1.5;
+      violetPoint.position.x = -7 + Math.cos(elapsed * 0.4 * motionMultiplier) * 2;
 
-      // Update particle positions & gentle drift
+      // Update particle positions
       const posAttr = pGeo.attributes.position;
       const positions = posAttr.array as Float32Array;
 
       for (let i = 0; i < pCount; i++) {
         const idx = i * 3;
-        positions[idx] += pVelocities[idx];
-        positions[idx + 1] += pVelocities[idx + 1] + Math.sin(elapsed * 0.8 + i) * 0.002;
-        positions[idx + 2] += pVelocities[idx + 2];
+        positions[idx] += pVelocities[idx] * motionMultiplier;
+        positions[idx + 1] += (pVelocities[idx + 1] + Math.sin(elapsed * 0.6 + i) * 0.001) * motionMultiplier;
+        positions[idx + 2] += pVelocities[idx + 2] * motionMultiplier;
 
         // Wrap around bounds
-        if (positions[idx] > 14) positions[idx] = -14;
-        if (positions[idx] < -14) positions[idx] = 14;
-        if (positions[idx + 1] > 9) positions[idx + 1] = -9;
-        if (positions[idx + 1] < -9) positions[idx + 1] = 9;
-        if (positions[idx + 2] > 7) positions[idx + 2] = -12;
-        if (positions[idx + 2] < -12) positions[idx + 2] = 7;
+        if (positions[idx] > 15) positions[idx] = -15;
+        if (positions[idx] < -15) positions[idx] = 15;
+        if (positions[idx + 1] > 10) positions[idx + 1] = -10;
+        if (positions[idx + 1] < -10) positions[idx + 1] = 10;
+        if (positions[idx + 2] > 6) positions[idx + 2] = -14;
+        if (positions[idx + 2] < -14) positions[idx + 2] = 6;
       }
       posAttr.needsUpdate = true;
 
-      // Connect nearby particles with glowing strands
+      // Connect nearby particles with thin strands
       let lineVertexIdx = 0;
       const lPositions = lineGeo.attributes.position.array as Float32Array;
       const lColors = lineGeo.attributes.color.array as Float32Array;
+
+      const connectionDist = 4.2;
 
       for (let i = 0; i < pCount && lineVertexIdx < maxConnections; i++) {
         const idxI = i * 3;
@@ -266,73 +256,64 @@ export function Space3DBackground({
           const dz = z1 - z2;
           const distSq = dx * dx + dy * dy + dz * dz;
 
-          // Connect if distance < 2.8 units
-          if (distSq < 7.84) {
-            const outIdx = lineVertexIdx * 6;
-            lPositions[outIdx] = x1;
-            lPositions[outIdx + 1] = y1;
-            lPositions[outIdx + 2] = z1;
-            lPositions[outIdx + 3] = x2;
-            lPositions[outIdx + 4] = y2;
-            lPositions[outIdx + 5] = z2;
+          if (distSq < connectionDist * connectionDist) {
+            const alpha = 1.0 - Math.sqrt(distSq) / connectionDist;
+            const lineIdx = lineVertexIdx * 6;
 
-            const strength = Math.max(0, 1 - Math.sqrt(distSq) / 2.8);
-            for (let c = 0; c < 6; c += 3) {
-              lColors[outIdx + c] = 0.22 * strength;
-              lColors[outIdx + c + 1] = 0.84 * strength;
-              lColors[outIdx + c + 2] = 0.98 * strength;
-            }
+            lPositions[lineIdx] = x1;
+            lPositions[lineIdx + 1] = y1;
+            lPositions[lineIdx + 2] = z1;
+            lPositions[lineIdx + 3] = x2;
+            lPositions[lineIdx + 4] = y2;
+            lPositions[lineIdx + 5] = z2;
+
+            const c1r = pColors[idxI] * alpha;
+            const c1g = pColors[idxI + 1] * alpha;
+            const c1b = pColors[idxI + 2] * alpha;
+
+            lColors[lineIdx] = c1r;
+            lColors[lineIdx + 1] = c1g;
+            lColors[lineIdx + 2] = c1b;
+            lColors[lineIdx + 3] = c1r;
+            lColors[lineIdx + 4] = c1g;
+            lColors[lineIdx + 5] = c1b;
 
             lineVertexIdx++;
           }
         }
       }
 
-      // Clear remaining line slots
-      for (let k = lineVertexIdx * 6; k < maxConnections * 6; k++) {
-        lPositions[k] = 0;
-        lColors[k] = 0;
-      }
+      lineGeo.setDrawRange(0, lineVertexIdx * 2);
       lineGeo.attributes.position.needsUpdate = true;
       lineGeo.attributes.color.needsUpdate = true;
 
-      // Undulate Cyber Grid Horizon
-      if (gridMesh && gridGeo && originalGridY) {
-        const gridPos = gridGeo.attributes.position;
-        const count = gridPos.count;
-        for (let i = 0; i < count; i++) {
-          const x = gridPos.getX(i);
-          const z = gridPos.getZ(i);
-          const wave = Math.sin(x * 0.28 + elapsed * 1.2) * Math.cos(z * 0.28 + elapsed * 0.9) * 0.38;
-          gridPos.setY(i, originalGridY[i] + wave);
-        }
-        gridPos.needsUpdate = true;
-      }
+      // Distant stars slow drift
+      starPoints.rotation.y = elapsed * 0.015 * motionMultiplier;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // --- Cleanup on Unmount ---
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('mousemove', handleMouseMove);
+      if (interactive && !prefersReducedMotion) {
+        window.removeEventListener('mousemove', handleMouseMove);
+      }
       window.removeEventListener('resize', handleResize);
-
+      renderer.dispose();
       pGeo.dispose();
       pMat.dispose();
-      particleTexture.dispose();
       lineGeo.dispose();
       lineMat.dispose();
-      if (gridGeo) gridGeo.dispose();
-      renderer.dispose();
-
+      starGeo.dispose();
+      starMat.dispose();
+      particleTexture.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
     };
-  }, [interactive, particleCount, showGrid]);
+  }, [interactive, particleCount]);
 
   return (
     <div
@@ -341,9 +322,9 @@ export function Space3DBackground({
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
-        zIndex: 0,
-        opacity,
-        overflow: 'hidden'
+        zIndex: 1,
+        opacity: opacity,
+        transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
     />
   );

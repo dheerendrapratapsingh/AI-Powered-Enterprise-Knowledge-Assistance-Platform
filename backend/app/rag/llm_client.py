@@ -94,17 +94,11 @@ def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
 
 def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str, None, None]:
     """
-    Streams tokens prioritizing Google Gemini 2.0 Flash (fast, cloud, zero GPU).
-    Seamlessly falls back to fast conversational streaming or local Ollama if Gemini key is absent.
+    Streams tokens prioritizing immediate fast-text typing for greetings/small talk (<30ms),
+    and Google Gemini for deep university grounding.
+    Seamlessly falls back to local Ollama if Gemini key is absent or failing.
     """
-    if check_gemini_configured():
-        try:
-            yield from _stream_gemini_tokens(prompt)
-            return
-        except Exception as e:
-            logger.warning(f"Google Gemini streaming failed ({e}), attempting Ollama fallback...")
-
-    # Fast-path for simple conversational / greeting queries when offline
+    # Fast-path for simple conversational / greeting queries (instant response)
     if fast_text:
         import time
         words = fast_text.split(" ")
@@ -112,6 +106,13 @@ def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str,
             yield word + (" " if i < len(words) - 1 else "")
             time.sleep(0.015)
         return
+
+    if check_gemini_configured():
+        try:
+            yield from _stream_gemini_tokens(prompt)
+            return
+        except Exception as e:
+            logger.warning(f"Google Gemini streaming failed ({e}), attempting Ollama fallback...")
 
     yield from _stream_ollama_tokens(prompt)
 

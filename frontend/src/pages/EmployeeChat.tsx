@@ -1,41 +1,47 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { 
-  Send, 
-  FileText, 
-  Bot, 
-  Plus, 
-  Trash2, 
-  Square, 
-  Copy, 
-  Check, 
-  ThumbsUp, 
-  ThumbsDown, 
-  ChevronDown, 
-  ChevronUp, 
-  MessageSquare, 
-  Search, 
-  PanelLeft, 
-  Pencil, 
+import {
+  Send,
+  FileText,
+  Bot,
+  Plus,
+  Trash2,
+  Square,
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  Search,
+  PanelLeft,
+  Pencil,
   X,
   ArrowUpRight,
   Sparkles,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  LogOut,
+  LayoutDashboard,
+  GraduationCap,
+  Building2,
+  MapPin,
+  Mail
 } from 'lucide-react';
 import { AI3DOrb } from '../components/AI3DOrb';
 import { Space3DBackground } from '../components/Space3DBackground';
 import styles from './EmployeeChat.module.css';
-import { 
-  sendMessageStream, 
-  submitFeedback, 
-  getConversations, 
-  getConversationMessages, 
-  deleteConversation, 
-  renameConversation, 
-  clearAllConversations 
+import {
+  sendMessageStream,
+  submitFeedback,
+  getConversations,
+  getConversationMessages,
+  deleteConversation,
+  renameConversation,
+  clearAllConversations
 } from '../services/chat';
-import { getCurrentUser } from '../services/auth';
+import { getCurrentUser, logout } from '../services/auth';
 
 interface SourceItem {
   document_id?: string;
@@ -83,8 +89,16 @@ export function EmployeeChat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    getCurrentUser().then(u => setUser(u)).catch(() => {});
+    getCurrentUser().then(u => setUser(u)).catch(() => { });
     loadConversations();
+
+    // Check for prompt from URL query params (e.g., from HomePage or KnowledgeBasePage)
+    const params = new URLSearchParams(window.location.search);
+    const initialPrompt = params.get('prompt');
+    if (initialPrompt) {
+      setQuery(initialPrompt);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const scrollToBottom = () => {
@@ -100,6 +114,23 @@ export function EmployeeChat() {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
+  };
+
+  const getInitial = () => {
+    if (user?.name) return user.name.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    return 'S';
+  };
+
+  const formatRole = (r?: string) => {
+    if (r === 'ADMIN') return 'Platform Admin';
+    if (r === 'ORG_ADMIN') return 'Org Admin';
+    return 'Student Member';
   };
 
   const loadConversations = async () => {
@@ -206,7 +237,7 @@ export function EmployeeChat() {
 
     try {
       await submitFeedback(msg.message_id, rating);
-      setMessages(prev => prev.map((m, i) => 
+      setMessages(prev => prev.map((m, i) =>
         i === messageIndex ? { ...m, feedbackSubmitted: true } : m
       ));
     } catch (err) {
@@ -232,8 +263,8 @@ export function EmployeeChat() {
     abortControllerRef.current = controller;
 
     await sendMessageStream(
-      promptToSend, 
-      conversationId, 
+      promptToSend,
+      conversationId,
       {
         onMetadata: (metadata) => {
           if (metadata.conversation_id && metadata.conversation_id !== conversationId) {
@@ -300,7 +331,7 @@ export function EmployeeChat() {
   };
 
   // Group conversations by date (Today, Yesterday, Previous 7 Days, Older)
-  const filteredConversations = conversations.filter(c => 
+  const filteredConversations = conversations.filter(c =>
     (c.title || '').toLowerCase().includes(historySearch.toLowerCase())
   );
 
@@ -345,15 +376,20 @@ export function EmployeeChat() {
       <aside className={`${styles.historySidebar} ${!sidebarOpen ? styles.historySidebarHidden : ''}`}>
         <div className={styles.historyHeader}>
           <div className={styles.historyTopRow}>
-            <div className={styles.historyBrandTitle}>
-              <MessageSquare size={16} color="var(--accent-cyan)" />
-              <span>Chat History</span>
+            <div className={styles.historyBrandGroup}>
+              <div className={styles.brandIconSquare}>
+                <Bot size={18} color="#FFFFFF" />
+              </div>
+              <div className={styles.brandTitleText}>
+                <span className={styles.brandTitleMain}>VIT-AP Copilot</span>
+                <span className={styles.brandTitleSub}>Campus Intelligence</span>
+              </div>
             </div>
 
-            <button 
+            <button
               className={styles.historyActionBtn}
               onClick={() => setSidebarOpen(false)}
-              title="Close history panel"
+              title="Collapse sidebar"
             >
               <PanelLeft size={16} />
             </button>
@@ -371,7 +407,7 @@ export function EmployeeChat() {
 
           <div className={styles.searchBox}>
             <Search size={13} color="var(--text-muted)" />
-            <input 
+            <input
               type="text"
               placeholder="Search chat history..."
               value={historySearch}
@@ -392,14 +428,14 @@ export function EmployeeChat() {
               <div key={groupName} className={styles.historyGroupItems}>
                 <div className={styles.historyGroupTitle}>{groupName}</div>
                 {items.map(conv => (
-                  <div 
+                  <div
                     key={conv.id}
                     className={`${styles.historyItem} ${conv.id === conversationId ? styles.historyItemActive : ''}`}
                     onClick={() => handleSelectConversation(conv.id)}
                   >
                     <div className={styles.historyItemLeft}>
                       <MessageSquare size={14} color={conv.id === conversationId ? 'var(--accent-cyan)' : 'var(--text-muted)'} style={{ flexShrink: 0 }} />
-                      
+
                       {editingConvId === conv.id ? (
                         <input
                           type="text"
@@ -420,14 +456,14 @@ export function EmployeeChat() {
                     <div className={styles.historyActions}>
                       {editingConvId === conv.id ? (
                         <>
-                          <button 
+                          <button
                             className={styles.historyActionBtn}
                             onClick={e => handleSaveRename(e, conv.id)}
                             title="Save title"
                           >
                             <Check size={12} color="var(--accent-emerald)" />
                           </button>
-                          <button 
+                          <button
                             className={styles.historyActionBtn}
                             onClick={e => { e.stopPropagation(); setEditingConvId(null); }}
                             title="Cancel rename"
@@ -437,14 +473,14 @@ export function EmployeeChat() {
                         </>
                       ) : (
                         <>
-                          <button 
+                          <button
                             className={styles.historyActionBtn}
                             onClick={e => handleStartRename(e, conv)}
                             title="Rename chat"
                           >
                             <Pencil size={12} />
                           </button>
-                          <button 
+                          <button
                             className={`${styles.historyActionBtn} ${styles.historyActionDelete}`}
                             onClick={e => handleDeleteConversation(e, conv.id)}
                             title="Delete chat"
@@ -461,36 +497,67 @@ export function EmployeeChat() {
           )}
         </div>
 
-        {/* History Footer */}
-        {conversations.length > 0 && (
-          <div className={styles.historyFooter}>
-            <button className={styles.clearAllBtn} onClick={handleClearAll} title="Clear all past chats">
-              <Trash2 size={12} />
-              <span>Clear chat history</span>
+        {/* History Footer & Unified User Profile */}
+        <div className={styles.historyFooter}>
+          {conversations.length > 0 && (
+            <div className={styles.historyFooterActions}>
+              <button className={styles.clearAllBtn} onClick={handleClearAll} title="Clear all past chats">
+                <Trash2 size={12} />
+                <span>Clear chat history</span>
+              </button>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
+                {conversations.length} sessions
+              </span>
+            </div>
+          )}
+
+          {/* User Profile Card */}
+          <div className={styles.userProfileCard}>
+            <div className={styles.userAvatar}>
+              {getInitial()}
+            </div>
+            <div className={styles.userInfo}>
+              <span className={styles.userName}>{user?.name || "Active Scholar"}</span>
+              <span className={styles.userRoleBadge}>{formatRole(user?.role)}</span>
+            </div>
+
+            {(user?.role === 'ORG_ADMIN' || user?.role === 'ADMIN') && (
+              <button
+                className={styles.adminSwitchBtn}
+                onClick={() => window.location.href = user?.role === 'ADMIN' ? '/admin/platform' : '/org'}
+                title="Open Admin Portal"
+              >
+                <LayoutDashboard size={15} />
+              </button>
+            )}
+
+            <button
+              className={styles.logoutBtn}
+              onClick={handleLogout}
+              title="Sign out of Copilot"
+            >
+              <LogOut size={15} />
             </button>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
-              {conversations.length} sessions
-            </span>
           </div>
-        )}
+        </div>
       </aside>
 
       {/* Main Chat Workspace */}
       <div className={styles.chatArea}>
-        <Space3DBackground 
-          opacity={messages.length === 0 ? 0.85 : 0.38} 
-          showGrid={true} 
-          interactive={true} 
+        <Space3DBackground
+          opacity={messages.length === 0 ? 0.85 : 0.38}
+          showGrid={true}
+          interactive={true}
         />
 
         {/* Sub-Header Bar on Canvas */}
         <div className={styles.canvasHeader}>
           <div className={styles.canvasHeaderLeft}>
             {!sidebarOpen && (
-              <button 
+              <button
                 className={styles.toggleSidebarBtn}
                 onClick={() => setSidebarOpen(true)}
-                title="Open chat history"
+                title="Open sidebar"
               >
                 <PanelLeft size={16} />
               </button>
@@ -499,93 +566,125 @@ export function EmployeeChat() {
             <div className={styles.activeConvTitle}>
               {activeConversation?.title || (messages.length > 0 ? "Active Dialogue Session" : "New Conversation")}
             </div>
-
-            <div className={styles.headerModeBadge}>
-              <span className={styles.headerModeBadgeDot}></span>
-              <span>Dual-Mode AI Engine</span>
-            </div>
           </div>
 
-          <button className="btn-secondary" style={{ padding: '5px 11px', fontSize: '0.78rem' }} onClick={handleNewConversation}>
-            <Plus size={12} />
-            <span>New Chat</span>
-          </button>
+          <div className={styles.canvasHeaderRight}>
+            {(user?.role === 'ORG_ADMIN' || user?.role === 'ADMIN') && (
+              <button
+                className="btn-secondary"
+                style={{ padding: '5px 11px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                onClick={() => window.location.href = user?.role === 'ADMIN' ? '/platform' : '/org'}
+                title="Go to Admin Management"
+              >
+                <LayoutDashboard size={13} />
+                <span>Admin Portal</span>
+              </button>
+            )}
+
+            <button className="btn-secondary" style={{ padding: '5px 11px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }} onClick={handleNewConversation}>
+              <Plus size={12} />
+              <span>New Chat</span>
+            </button>
+          </div>
         </div>
 
         {/* Messages Scroll Area */}
         <div className={styles.chatHistory}>
           {messages.length === 0 ? (
-            /* Empty State: 3D Holographic Orb + Refined Starter Cards */
+            /* Empty State: 3D Institutional Intelligence Core + Refined Starter Cards */
             <div className={styles.welcomeSection}>
-              <AI3DOrb size={190} interactive={true} />
-              
+              <div className={styles.orbWrapper}>
+                <AI3DOrb size={220} interactive={true} />
+              </div>
+
               <div className={styles.welcomeBadge}>
+                <span className={styles.welcomeBadgeDot}></span>
                 <Sparkles size={12} color="var(--accent-cyan)" />
-                <span>Verified Institutional Knowledge Engine • Zero Hallucination</span>
+                <span>Institutional Knowledge Core • Verified Grounding</span>
               </div>
 
               <h1 className={styles.welcomeGreeting}>
                 {getTimeGreeting()}, <span className="gradient-text-accent">{user?.name ? user.name.split(' ')[0] : 'Scholar'}</span>
               </h1>
               <p className={styles.welcomeSubtitle}>
-                How can I assist your academic journey today? Select an official inquiry or ask anything about degree curricula, hostels, or faculty below.
+                Welcome to VIT-AP Copilot. Explore academic regulations, degree syllabi, hostel rules, or campus staff directories.
               </p>
 
               <div className={styles.starterGrid}>
-                <div 
-                  className={styles.starterCard} 
+                <div
+                  className={styles.starterCard}
                   onClick={() => handleSend("What are all the compulsory Programme Core courses for B.Tech CSE Core?")}
                 >
                   <div className={styles.starterLeft}>
-                    <div className={styles.starterIcon}>📘</div>
+                    <div className={styles.starterIcon}>
+                      <GraduationCap size={14} color="var(--accent-cyan)" />
+                    </div>
                     <div className={styles.starterContent}>
-                      <span className={styles.starterTitle}>B.Tech CSE Core Syllabi</span>
-                      <span className={styles.starterPrompt}>Programme Core subjects, course codes & credit details</span>
+                      <div className={styles.starterTitleRow}>
+                        <span className={styles.starterTitle}>B.Tech CSE Core Syllabi</span>
+                        <span className={styles.starterCategoryBadge}>Academics</span>
+                      </div>
+                      <span className={styles.starterPrompt}>Programme Core subjects, course codes & credits</span>
                     </div>
                   </div>
-                  <ArrowUpRight size={16} className={styles.starterArrow} />
+                  <ArrowUpRight size={13} className={styles.starterArrow} />
                 </div>
 
-                <div 
-                  className={styles.starterCard} 
+                <div
+                  className={styles.starterCard}
                   onClick={() => handleSend("What are the Sunday outing return timings, late penalties, and extra 3-hour extension procedure?")}
                 >
                   <div className={styles.starterLeft}>
-                    <div className={styles.starterIcon}>🏠</div>
+                    <div className={styles.starterIcon}>
+                      <Building2 size={14} color="var(--accent-primary)" />
+                    </div>
                     <div className={styles.starterContent}>
-                      <span className={styles.starterTitle}>Hostel Outing Regulations</span>
-                      <span className={styles.starterPrompt}>6:30 PM deadline, biometric checks, and extension rules</span>
+                      <div className={styles.starterTitleRow}>
+                        <span className={styles.starterTitle}>Hostel Outing Regulations</span>
+                        <span className={styles.starterCategoryBadge}>Campus Life</span>
+                      </div>
+                      <span className={styles.starterPrompt}>6:30 PM deadline, biometric checks & extensions</span>
                     </div>
                   </div>
-                  <ArrowUpRight size={16} className={styles.starterArrow} />
+                  <ArrowUpRight size={13} className={styles.starterArrow} />
                 </div>
 
-                <div 
-                  className={styles.starterCard} 
+                <div
+                  className={styles.starterCard}
                   onClick={() => handleSend("Where is Dr. Hari Seetha's cabin and what is her designation and department?")}
                 >
                   <div className={styles.starterLeft}>
-                    <div className={styles.starterIcon}>📍</div>
+                    <div className={styles.starterIcon}>
+                      <MapPin size={14} color="var(--accent-violet)" />
+                    </div>
                     <div className={styles.starterContent}>
-                      <span className={styles.starterTitle}>Faculty & Cabin Locator</span>
-                      <span className={styles.starterPrompt}>Locate professors, designations, and campus office cabins</span>
+                      <div className={styles.starterTitleRow}>
+                        <span className={styles.starterTitle}>Faculty & Cabin Locator</span>
+                        <span className={styles.starterCategoryBadge}>Directory</span>
+                      </div>
+                      <span className={styles.starterPrompt}>Find professors, employee IDs & office cabins</span>
                     </div>
                   </div>
-                  <ArrowUpRight size={16} className={styles.starterArrow} />
+                  <ArrowUpRight size={13} className={styles.starterArrow} />
                 </div>
 
-                <div 
-                  className={styles.starterCard} 
+                <div
+                  className={styles.starterCard}
                   onClick={() => handleSend("Draft a formal email to my School Dean requesting permission for an academic hackathon leave.")}
                 >
                   <div className={styles.starterLeft}>
-                    <div className={styles.starterIcon}>✉️</div>
+                    <div className={styles.starterIcon}>
+                      <Mail size={14} color="var(--accent-emerald)" />
+                    </div>
                     <div className={styles.starterContent}>
-                      <span className={styles.starterTitle}>Draft Official Email</span>
-                      <span className={styles.starterPrompt}>Compose polished request letters to Deans or Coordinators</span>
+                      <div className={styles.starterTitleRow}>
+                        <span className={styles.starterTitle}>Draft Official Email</span>
+                        <span className={styles.starterCategoryBadge}>Official Mail</span>
+                      </div>
+                      <span className={styles.starterPrompt}>Compose polished request letters to Deans</span>
                     </div>
                   </div>
-                  <ArrowUpRight size={16} className={styles.starterArrow} />
+                  <ArrowUpRight size={13} className={styles.starterArrow} />
                 </div>
               </div>
             </div>
@@ -619,7 +718,6 @@ export function EmployeeChat() {
                               <span>Conversational Intelligence</span>
                             </div>
                           )}
-                          <span className={styles.aiModelBadge}>Gemini 2.0 Flash</span>
                         </div>
 
                         <div className={styles.markdownBody}>
@@ -682,8 +780,8 @@ export function EmployeeChat() {
                       {/* Action Toolbar */}
                       {msg.content && (
                         <div className={styles.actionToolbar}>
-                          <button 
-                            className={styles.toolbarBtn} 
+                          <button
+                            className={styles.toolbarBtn}
                             onClick={() => handleCopy(msg.content, idx)}
                             title="Copy answer to clipboard"
                           >
@@ -706,16 +804,16 @@ export function EmployeeChat() {
                             </span>
                           ) : (
                             <>
-                              <button 
-                                className={styles.toolbarBtn} 
-                                onClick={() => handleFeedback(idx, 1)} 
+                              <button
+                                className={styles.toolbarBtn}
+                                onClick={() => handleFeedback(idx, 1)}
                                 title="Mark as helpful"
                               >
                                 <ThumbsUp size={13} />
                               </button>
-                              <button 
-                                className={styles.toolbarBtn} 
-                                onClick={() => handleFeedback(idx, -1)} 
+                              <button
+                                className={styles.toolbarBtn}
+                                onClick={() => handleFeedback(idx, -1)}
                                 title="Mark as unhelpful"
                               >
                                 <ThumbsDown size={13} />
@@ -779,9 +877,9 @@ export function EmployeeChat() {
               onKeyDown={handleKeyDown}
             />
 
-            <button 
-              className={styles.sendBtn} 
-              onClick={() => handleSend()} 
+            <button
+              className={styles.sendBtn}
+              onClick={() => handleSend()}
               disabled={!query.trim() || loading}
               title="Send question (Enter)"
             >
@@ -790,7 +888,7 @@ export function EmployeeChat() {
           </div>
 
           <div className={styles.inputDisclaimer}>
-            Answers are grounded in official VIT-AP university documents • Sub-70ms Semantic Cache Active
+            Answers are grounded in official VIT-AP university documents
           </div>
         </div>
       </div>

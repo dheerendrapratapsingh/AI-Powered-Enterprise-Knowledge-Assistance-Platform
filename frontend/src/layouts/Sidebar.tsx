@@ -8,8 +8,7 @@ import {
   LayoutDashboard, 
   LogOut, 
   ChevronLeft, 
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { getCurrentUser, logout } from '../services/auth';
 import styles from './Sidebar.module.css';
@@ -80,10 +79,6 @@ export function Sidebar({ role }: SidebarProps) {
               <MessageSquare size={18} className={styles.linkIcon} />
               {!collapsed && <span>AI Copilot Chat</span>}
             </NavLink>
-            <NavLink to="/search" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Curriculum & Policy Search">
-              <Sparkles size={18} className={styles.linkIcon} />
-              {!collapsed && <span>Knowledge Search</span>}
-            </NavLink>
           </>
         )}
 
@@ -108,11 +103,11 @@ export function Sidebar({ role }: SidebarProps) {
         {role === 'platform' && (
           <>
             {!collapsed && <div className={styles.navSection}>Platform Ecosystem</div>}
-            <NavLink to="/platform" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Platform Dashboard">
+            <NavLink to="/admin/platform" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Platform Dashboard">
               <LayoutDashboard size={18} className={styles.linkIcon} />
               {!collapsed && <span>Global Overview</span>}
             </NavLink>
-            <NavLink to="/platform/orgs" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Tenant Organizations">
+            <NavLink to="/admin/platform/orgs" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Tenant Organizations">
               <Building2 size={18} className={styles.linkIcon} />
               {!collapsed && <span>Tenants / Orgs</span>}
             </NavLink>

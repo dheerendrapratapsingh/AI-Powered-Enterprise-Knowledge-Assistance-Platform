@@ -16,9 +16,9 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
 
     q_lower = question.lower()
 
-    # Contextualize ambiguous/relative campus queries lacking university mentions
+    # Contextualize ambiguous location/campus queries lacking university mentions
     search_q = question
-    if not any(k in q_lower for k in ["vit", "vit-ap", "vitap", "university"]):
+    if any(k in q_lower for k in ["address", "location", "where is it", "reach it", "situated", "pincode"]) and not any(k in q_lower for k in ["vit", "vit-ap", "vitap", "university"]):
         search_q = f"VIT-AP University {question}"
 
     query_embedding = generate_embedding(search_q)
@@ -86,6 +86,17 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         ]
         if loc_candidates:
             candidates = loc_candidates + [c for c in candidates if c not in loc_candidates]
+
+    # 4. Electives / Curriculum / Course categories detection
+    curriculum_keywords = ["elective", "electives", "curriculum", "syllabus", "syllabi", "programme elective", "university elective", "open elective"]
+    if any(k in q_lower for k in curriculum_keywords):
+        curr_candidates = [
+            c for c in candidates 
+            if any(term in c.get("metadata", {}).get("document_name", "").lower() for term in ["cse", "csbs", "curriculum", "syllabus", "core"])
+            or any(term in c.get("text", "").lower() for term in ["programme electives", "university electives", "open electives", "programme core"])
+        ]
+        if curr_candidates:
+            candidates = curr_candidates + [c for c in candidates if c not in curr_candidates]
 
     results = []
     for item in candidates:

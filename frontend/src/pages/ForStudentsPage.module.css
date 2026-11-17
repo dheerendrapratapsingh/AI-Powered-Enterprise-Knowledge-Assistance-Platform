@@ -1,0 +1,491 @@
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #060912;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.pageWrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+.heroSection {
+  padding: 4.5rem 0 4rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.heroContent {
+  max-width: 840px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #38BDF8;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px #38BDF8;
+}
+
+.heroHeadline {
+  font-size: clamp(2.4rem, 4.4vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: #FFFFFF;
+  margin-bottom: 1.25rem;
+}
+
+.heroHeadlineGradient {
+  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroDescription {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  max-width: 680px;
+  margin-bottom: 2rem;
+}
+
+/* ==========================================================================
+   Pillars & Focus Areas
+   ========================================================================== */
+.sectionBlock {
+  padding: 4.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 1;
+}
+
+.blockGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.blockGridReversed {
+  grid-template-columns: 1fr 1fr;
+}
+
+.blockGridReversed .blockTextCol {
+  order: 2;
+}
+
+.blockGridReversed .blockVisualCol {
+  order: 1;
+}
+
+.blockTag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #38BDF8;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.blockHeading {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  line-height: 1.25;
+  margin-bottom: 1.25rem;
+}
+
+.blockDesc {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  margin-bottom: 1.75rem;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #CBD5E1;
+}
+
+.featureDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38BDF8;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.samplePromptList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.samplePromptLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+  margin-bottom: 0.2rem;
+}
+
+.promptChip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: #E2E8F0;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.promptChip:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38BDF8;
+  color: #FFFFFF;
+}
+
+.promptChipIcon {
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+/* Visual Cards */
+.visualCard {
+  background: rgba(11, 17, 32, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.visualCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.visualCardTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #E2E8F0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.previewDocRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.8rem;
+}
+
+.previewDocRow:last-child {
+  border-bottom: none;
+}
+
+.previewDocName {
+  color: #F8FAFC;
+  font-weight: 500;
+}
+
+.previewDocMeta {
+  color: #64748B;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+
+/* ==========================================================================
+   Ask Naturally Section (Comparison & Demo)
+   ========================================================================== */
+.askNaturallySection {
+  padding: 5rem 0;
+  background: rgba(8, 13, 27, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+.askHeader {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 3.5rem;
+}
+
+.askTitle {
+  font-size: clamp(2rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.askSubtitle {
+  font-size: 0.98rem;
+  color: #94A3B8;
+  line-height: 1.6;
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.comparisonBox {
+  background: rgba(11, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.comparisonBoxBad {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.comparisonBoxGood {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.comparisonHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.comparisonLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.labelBad {
+  color: #F87171;
+}
+
+.labelGood {
+  color: #38BDF8;
+}
+
+.comparisonSteps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comparisonStepItem {
+  font-size: 0.84rem;
+  color: #94A3B8;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.stepIconRed {
+  color: #F87171;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.stepIconGreen {
+  color: #34D399;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Chat Specimen */
+.chatSpecimen {
+  margin-top: 1.5rem;
+  background: #04060A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.chatSpecimenQuery {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+  display: flex;
+  gap: 8px;
+}
+
+.chatSpecimenAnswer {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #CBD5E1;
+}
+
+.chatSpecimenCitation {
+  margin-top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   Closing CTA
+   ========================================================================== */
+.ctaSection {
+  padding: 5rem 0 6rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.ctaBox {
+  background: rgba(11, 17, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 3.5rem 2rem;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.ctaTitle {
+  font-size: clamp(2rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.ctaDesc {
+  font-size: 1rem;
+  color: #94A3B8;
+  max-width: 520px;
+  margin: 0 auto 2rem;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #38BDF8;
+  color: #060912;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0.85rem 1.85rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaBtn:hover {
+  background: #7DD3FC;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .blockGrid, .blockGridReversed {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .blockGridReversed .blockTextCol {
+    order: 1;
+  }
+  .blockGridReversed .blockVisualCol {
+    order: 2;
+  }
+  .comparisonGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroHeadline {
+    font-size: 2.2rem;
+  }
+}
