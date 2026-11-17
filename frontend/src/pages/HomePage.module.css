@@ -1,0 +1,961 @@
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #060912;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.pageWrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sectionInner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Section 1: Hero
+   ========================================================================== */
+.heroSection {
+  padding: 4.5rem 0 5rem;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.heroLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #38BDF8;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px #38BDF8;
+}
+
+.heroHeadline {
+  font-size: clamp(2.4rem, 4.2vw, 3.3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: #FFFFFF;
+  margin-bottom: 1.25rem;
+}
+
+.heroHeadlineLight {
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.heroSupportingText {
+  font-size: 1.05rem;
+  color: #94A3B8;
+  line-height: 1.6;
+  max-width: 540px;
+  margin-bottom: 2.25rem;
+}
+
+.heroActionGroup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 2.5rem;
+}
+
+.ctaPrimaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #38BDF8;
+  color: #061122;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  cursor: pointer;
+  transition: all 180ms ease;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+}
+
+.ctaPrimaryBtn:hover {
+  background: #7DD3FC;
+  transform: translateY(-1px);
+}
+
+.ctaSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #F8FAFC;
+  font-size: 0.92rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.ctaSecondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.heroPromptRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.heroPromptLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+}
+
+.heroPromptList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroPromptChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: #0E1424;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  color: #94A3B8;
+  font-size: 0.77rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.heroPromptChip:hover {
+  background: #141C30;
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #FFFFFF;
+}
+
+.chipIcon {
+  color: #38BDF8;
+}
+
+/* Right Showcase */
+.heroRight {
+  display: flex;
+  justify-content: center;
+}
+
+.heroOrbContainer {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroOrbGlow {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.terminalOverlayCard {
+  width: 100%;
+  background: rgba(11, 17, 32, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 2;
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminalBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.terminalStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 6px #34D399;
+}
+
+.terminalStatusText {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.terminalVersion {
+  font-size: 0.65rem;
+  color: #64748B;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.terminalQuery {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.terminalQueryUser {
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.terminalResponse {
+  background: rgba(4, 6, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+}
+
+.terminalResponseText {
+  font-size: 0.78rem;
+  color: #CBD5E1;
+  line-height: 1.55;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.citationBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #38BDF8;
+}
+
+/* ==========================================================================
+   Section 2: Introduce the Product
+   ========================================================================== */
+.introSection {
+  padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.introHeader {
+  max-width: 800px;
+  margin-bottom: 3.5rem;
+}
+
+.sectionEyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #38BDF8;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.introTitle {
+  font-size: clamp(2rem, 3.6vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  line-height: 1.2;
+  margin-bottom: 1.25rem;
+}
+
+.introTitleHighlight {
+  color: #94A3B8;
+}
+
+.introLead {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #94A3B8;
+}
+
+.editorialPreviewGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.editorialCardMain {
+  background: rgba(11, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.editorialBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38BDF8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1.25rem;
+}
+
+.editorialCardTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+
+.editorialCardBody {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  margin-bottom: 2rem;
+}
+
+.editorialStatsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.editorialStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.editorialStatNum {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.2rem;
+}
+
+.editorialStatLabel {
+  font-size: 0.72rem;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+.editorialCardSide {
+  background: rgba(11, 17, 32, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.sideCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #E2E8F0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1.5rem;
+}
+
+.sideCardDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+}
+
+.studentFeatureList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.studentFeatureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.studentFeatureIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+.studentFeatureTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.25rem;
+}
+
+.studentFeatureDesc {
+  font-size: 0.82rem;
+  color: #94A3B8;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Section 3: What Can You Explore?
+   ========================================================================== */
+.exploreSection {
+  padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.sectionHeaderCentered {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 3.5rem;
+}
+
+.sectionTitle {
+  font-size: clamp(2rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.sectionSubtitle {
+  font-size: 0.98rem;
+  color: #94A3B8;
+  line-height: 1.6;
+}
+
+.exploreAsymmetricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
+}
+
+.exploreCard {
+  background: rgba(11, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.exploreCard:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.85);
+  transform: translateY(-2px);
+}
+
+.exploreCardLarge {
+  grid-column: span 2;
+}
+
+.exploreCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.exploreIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+}
+
+.exploreCardTag {
+  font-size: 0.65rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.08em;
+}
+
+.exploreCardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.6rem;
+}
+
+.exploreCardDesc {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #94A3B8;
+  margin-bottom: 1.25rem;
+}
+
+.exploreInteractiveSample {
+  background: rgba(4, 6, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+  color: #38BDF8;
+  font-style: italic;
+  margin-top: auto;
+}
+
+.exploreTagRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.exploreDocBadge {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #CBD5E1;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   Section 4: Scenarios (How It Helps Students)
+   ========================================================================== */
+.scenariosSection {
+  padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.scenariosGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.scenarioCard {
+  background: rgba(11, 17, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.scenarioCard:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.8);
+  transform: translateY(-2px);
+}
+
+.scenarioNum {
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #64748B;
+  margin-bottom: 0.5rem;
+}
+
+.scenarioIconWrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+  margin-bottom: 1rem;
+}
+
+.scenarioTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.6rem;
+  line-height: 1.35;
+}
+
+.scenarioBody {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: #94A3B8;
+  margin-bottom: 1.25rem;
+  flex-grow: 1;
+}
+
+.scenarioPromptBtn {
+  background: transparent;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38BDF8;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.scenarioPromptBtn:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38BDF8;
+}
+
+/* ==========================================================================
+   Section 5: Knowledge Base Preview
+   ========================================================================== */
+.kbPreviewSection {
+  padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.kbPreviewBanner {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(8, 13, 27, 0.95) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 14px;
+  padding: 3rem;
+  display: grid;
+  grid-template-columns: 1.25fr 0.85fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.kbPreviewTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.kbPreviewText {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  margin-bottom: 1.5rem;
+}
+
+.docPillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.docPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  font-size: 0.78rem;
+  color: #E2E8F0;
+}
+
+.kbActionRow {
+  display: flex;
+}
+
+.kbExploreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #38BDF8;
+  color: #38BDF8;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kbExploreBtn:hover {
+  background: #38BDF8;
+  color: #060912;
+}
+
+.verifiedCard {
+  background: #04060A;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1.75rem;
+}
+
+.verifiedHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.verifiedBody {
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: #94A3B8;
+  margin-bottom: 1.5rem;
+}
+
+.verifiedMeta {
+  display: flex;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.verifiedItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.verifiedLabel {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.verifiedVal {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #34D399;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   Section 6: Final CTA
+   ========================================================================== */
+.finalCtaSection {
+  padding: 4rem 0 6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.finalCtaBox {
+  background: rgba(11, 17, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 3.5rem 2rem;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.finalCtaTitle {
+  font-size: clamp(2rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.finalCtaDesc {
+  font-size: 1rem;
+  color: #94A3B8;
+  max-width: 520px;
+  margin: 0 auto 2rem;
+}
+
+.finalCtaActionGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.finalCtaPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #38BDF8;
+  color: #060912;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.85rem 1.75rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.finalCtaPrimary:hover {
+  background: #7DD3FC;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
+}
+
+.finalCtaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #F8FAFC;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.85rem 1.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.finalCtaSecondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  .editorialPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+  .exploreAsymmetricGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .exploreCardLarge {
+    grid-column: span 2;
+  }
+  .scenariosGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .kbPreviewBanner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroHeadline {
+    font-size: 2.2rem;
+  }
+  .exploreAsymmetricGrid {
+    grid-template-columns: 1fr;
+  }
+  .exploreCardLarge {
+    grid-column: span 1;
+  }
+  .scenariosGrid {
+    grid-template-columns: 1fr;
+  }
+  .finalCtaActionGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+}

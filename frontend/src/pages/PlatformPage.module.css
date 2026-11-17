@@ -1,0 +1,646 @@
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #060912;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.pageWrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+.heroSection {
+  padding: 4.5rem 0 3.5rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.heroContent {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #38BDF8;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px #38BDF8;
+}
+
+.heroHeadline {
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: #FFFFFF;
+  margin-bottom: 1.25rem;
+}
+
+.heroHeadlineGradient {
+  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroDescription {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  max-width: 720px;
+  margin-bottom: 2rem;
+}
+
+/* Spec Ribbon */
+.specRibbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 1040px;
+  margin: 1.5rem auto 0;
+}
+
+.specCard {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.specCard:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(15, 23, 42, 0.85);
+  transform: translateY(-2px);
+}
+
+.specValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.25rem;
+}
+
+.specTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #F8FAFC;
+  margin-bottom: 0.2rem;
+}
+
+.specSubtitle {
+  font-size: 0.72rem;
+  color: #64748B;
+}
+
+/* ==========================================================================
+   Interactive Architecture Diagram
+   ========================================================================== */
+.diagramSection {
+  padding: 4rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.sectionTag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #38BDF8;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.sectionSubtitle {
+  font-size: 0.95rem;
+  color: #94A3B8;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.diagramContainer {
+  background: rgba(11, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagramPipeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pipelineStep {
+  flex: 1;
+  min-width: 170px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.pipelineStep:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.pipelineStepActive {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: #38BDF8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+}
+
+.pipelineStepActive::after {
+  content: '';
+  position: absolute;
+  bottom: -1.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #38BDF8;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.stepNum {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.stepIconWrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+}
+
+.stepTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.25rem;
+}
+
+.stepMetric {
+  font-size: 0.7rem;
+  color: #94A3B8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.detailCard {
+  background: rgba(8, 13, 27, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.detailLeft h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.5rem;
+}
+
+.detailLeft p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #94A3B8;
+  margin-bottom: 1rem;
+}
+
+.detailMetrics {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.metricKey {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.metricVal {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #38BDF8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.detailCode {
+  background: #04060A;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 1.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #CBD5E1;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Deep Dive Modules Grid
+   ========================================================================== */
+.deepDiveSection {
+  padding: 4rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.modulesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.moduleCard {
+  background: rgba(11, 17, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.moduleCard:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.moduleHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.moduleIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+}
+
+.moduleTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.moduleSubtitle {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.moduleBody {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #CBD5E1;
+}
+
+.featureDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38BDF8;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.comparisonBox {
+  background: #04060A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+}
+
+.comparisonRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.comparisonRow:last-child {
+  border-bottom: none;
+}
+
+.badLabel {
+  color: #F87171;
+}
+
+.goodLabel {
+  color: #34D399;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Dual Brain Showcase Banner
+   ========================================================================== */
+.dualBrainSection {
+  padding: 3.5rem 0 5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.dualBrainCard {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(8, 13, 27, 0.95) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 14px;
+  padding: 3rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.dualBrainTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin-bottom: 1rem;
+}
+
+.dualBrainText {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #94A3B8;
+  margin-bottom: 1.5rem;
+}
+
+.dualBrainBadges {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.engineBadge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.engineName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.engineRole {
+  font-size: 0.7rem;
+  color: #38BDF8;
+}
+
+.resilienceDiagram {
+  background: #04060A;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.diagramFlowRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+.flowNode {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #CBD5E1;
+}
+
+.flowStatusActive {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #34D399;
+  background: rgba(52, 211, 153, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.flowStatusStandby {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #FBBF24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   Bottom CTA
+   ========================================================================== */
+.ctaSection {
+  padding: 4rem 0 6rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.ctaBox {
+  background: rgba(11, 17, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 3.5rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin-bottom: 0.75rem;
+}
+
+.ctaText {
+  font-size: 0.95rem;
+  color: #94A3B8;
+  max-width: 540px;
+  margin: 0 auto 2rem;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #38BDF8;
+  color: #060912;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.85rem 1.75rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaBtn:hover {
+  background: #7DD3FC;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .specRibbon {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .modulesGrid {
+    grid-template-columns: 1fr;
+  }
+  .dualBrainCard {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .detailCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroHeadline {
+    font-size: 2rem;
+  }
+  .specRibbon {
+    grid-template-columns: 1fr;
+  }
+  .pipelineStep {
+    min-width: 140px;
+    padding: 0.85rem;
+  }
+}

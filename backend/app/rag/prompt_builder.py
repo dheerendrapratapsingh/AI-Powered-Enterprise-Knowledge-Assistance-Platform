@@ -6,7 +6,13 @@ def format_history_section(conversation_history: list = None) -> str:
     formatted = []
     for msg in conversation_history[-4:]:
         role = "Student" if msg.get("role") == "user" else "Assistant"
-        formatted.append(f"{role}: {msg.get('content')}")
+        content = msg.get("content", "")
+        # Prevent email draft templates in past history from hijacking formatting of future questions
+        if "Subject:" in content and any(s in content for s in ["Dear ", "Respected ", "Sincerely,"]):
+            content = "[Provided formal email draft as previously requested]"
+        elif len(content) > 350:
+            content = content[:350] + "..."
+        formatted.append(f"{role}: {content}")
     if formatted:
         return "\nRecent Conversation History:\n" + "\n".join(formatted) + "\n"
     return ""
@@ -104,16 +110,20 @@ Rules:
    - Never invent, guess, or hallucinate policies, course codes, or faculty details.
    - If the requested information is absent or not verified in the provided Context, state explicitly:
      "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
-6. Email Drafting Capability:
-   - If the student asks to draft, write, or compose an email (e.g., to a dean, professor, coordinator, or warden), generate a polite, professional email draft in Markdown with:
-     - **Subject:** [Concise and formal]
-     - **To:** [Faculty or Office name/email from Context, or placeholder]
-     - **Body:** [Polite academic message structured into clear paragraphs]
-     - **Sign-off:** [Respectful closing with placeholders for student name and reg. no.]
-7. Presentation:
+6. Email Drafting vs Informational Questions (CRITICAL):
+   - ONLY produce an email draft if the student's CURRENT question explicitly commands it (e.g. "Draft an email...", "Write an email to...").
+   - NEVER format responses to informational questions (such as "tell me about its types in electives", "what are the course types", "who is the dean") as an email or letter template.
+   - For all informational inquiries, provide a DIRECT EXPLANATION in clear markdown with headings and bullet points. Never include "Subject:", "Dear Dean", or sign-offs for informational questions.
+   - Do NOT adopt or mimic email templates from prior turns in the conversation history.
+7. Elective Course Types:
+   - When asked about types of electives, explain the university categories clearly:
+     • **Programme Electives (Discipline-Specific Electives)**: Advanced elective courses within the student's primary discipline/school (e.g., specialized CSE domains like AI, Data Science, Cyber Security, Cloud).
+     • **University Electives (Open Electives)**: Interdisciplinary courses offered across schools (Management, Law, Humanities, Sciences, Engineering) allowing students to explore subjects outside their major.
+     • **Basket / Specialization Electives**: Grouped elective course tracks tailored towards formal specializations or minor certifications.
+8. Presentation:
    - For course lists: list each course on its own bullet line:
      - **CODE**: Course Title (Credits)
-8. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
+9. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
 
 Context:
 {context_text}

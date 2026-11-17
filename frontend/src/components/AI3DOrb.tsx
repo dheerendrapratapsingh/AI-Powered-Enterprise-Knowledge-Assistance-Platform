@@ -7,6 +7,12 @@ interface AI3DOrbProps {
   interactive?: boolean;
 }
 
+/**
+ * Premium 3D Institutional Intelligence Core (VIT-AP Knowledge Prism)
+ * Designed with optical glass refraction, brushed titanium kernel,
+ * precision concentric gimbal rings, and orbiting knowledge anchor nodes.
+ * Inspired by Apple product presentation & Linear design refinement.
+ */
 export function AI3DOrb({ size = 260, className = '', interactive = true }: AI3DOrbProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -14,12 +20,15 @@ export function AI3DOrb({ size = 260, className = '', interactive = true }: AI3D
     const container = mountRef.current;
     if (!container) return;
 
-    // --- Scene & Camera ---
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    camera.position.z = 5.2;
+    // Check for user's reduced-motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // --- Renderer ---
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    camera.position.set(0, 0.3, 5.6);
+
+    // --- High-Fidelity Renderer ---
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -28,223 +37,256 @@ export function AI3DOrb({ size = 260, className = '', interactive = true }: AI3D
     renderer.setSize(size, size);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // --- Lighting ---
-    const ambientLight = new THREE.AmbientLight(0x0f172a, 1.5);
+    // --- Lighting Architecture ---
+    // 1. Deep Midnight Indigo Ambient Fill
+    const ambientLight = new THREE.AmbientLight(0x0c152e, 1.8);
     scene.add(ambientLight);
 
-    const cyanLight = new THREE.PointLight(0x36d6f5, 4, 12);
-    cyanLight.position.set(3, 2, 4);
-    scene.add(cyanLight);
+    // 2. Main Key Directional Light (Crisp cool specular highlights)
+    const keyLight = new THREE.DirectionalLight(0xe0f2fe, 2.6);
+    keyLight.position.set(4, 5, 4);
+    scene.add(keyLight);
 
-    const violetLight = new THREE.PointLight(0x9875ff, 4, 12);
-    violetLight.position.set(-3, -2, 4);
-    scene.add(violetLight);
+    // 3. Cyan Rim Light (Subtle back edge definition)
+    const cyanRim = new THREE.PointLight(0x38bdf8, 3.2, 14);
+    cyanRim.position.set(-3.5, -2, 3.5);
+    scene.add(cyanRim);
 
-    const blueLight = new THREE.PointLight(0x5577ff, 3, 10);
-    blueLight.position.set(0, 4, -2);
-    scene.add(blueLight);
+    // 4. Soft Violet Secondary Fill
+    const violetFill = new THREE.PointLight(0x818cf8, 2.4, 12);
+    violetFill.position.set(3, -3.5, -2);
+    scene.add(violetFill);
 
-    // --- Core Holographic Inner Sphere ---
-    const coreGeo = new THREE.IcosahedronGeometry(1.05, 3);
-    const coreMat = new THREE.MeshStandardMaterial({
-      color: 0x111c38,
-      emissive: 0x243d78,
-      emissiveIntensity: 0.8,
-      roughness: 0.2,
-      metalness: 0.8,
+    // --- Master Object Hierarchy ---
+    const coreRoot = new THREE.Group();
+    scene.add(coreRoot);
+
+    // --- 1. Central Translucent Optical Prism (Knowledge Core) ---
+    // Refractive faceted icosahedron
+    const glassGeo = new THREE.IcosahedronGeometry(1.08, 1);
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0f1d38,
+      metalness: 0.1,
+      roughness: 0.12,
+      transmission: 0.88,
+      ior: 1.52,
+      thickness: 1.4,
+      transparent: true,
+      opacity: 0.92,
+      specularIntensity: 1.0,
+      specularColor: new THREE.Color(0xbae6fd),
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1
+    });
+    const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+    coreRoot.add(glassMesh);
+
+    // Precision hairline facet lattice (Wireframe overlay)
+    const wireGeo = new THREE.IcosahedronGeometry(1.082, 1);
+    const wireMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
       wireframe: true,
       transparent: true,
-      opacity: 0.45
+      opacity: 0.22
     });
-    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-    scene.add(coreMesh);
+    const wireMesh = new THREE.Mesh(wireGeo, wireMat);
+    coreRoot.add(wireMesh);
 
-    // --- Glowing Inner Energy Sphere ---
-    const glowGeo = new THREE.SphereGeometry(0.82, 32, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0x36d6f5,
-      transparent: true,
-      opacity: 0.18,
-      blending: THREE.AdditiveBlending
+    // --- 2. Inner Polished Titanium Kernel ---
+    const kernelGeo = new THREE.OctahedronGeometry(0.58, 0);
+    const kernelMat = new THREE.MeshStandardMaterial({
+      color: 0x0b1329,
+      metalness: 0.92,
+      roughness: 0.22,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.38
     });
-    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
-    scene.add(glowMesh);
+    const kernelMesh = new THREE.Mesh(kernelGeo, kernelMat);
+    coreRoot.add(kernelMesh);
 
-    // --- Outer Constellation Particles ---
-    const particleCount = 280;
-    const particleGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const originalPositions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
+    // --- 3. Precision Concentric Gimbal / Orbital Rings ---
+    // Ring A: Equator Latitude Ring
+    const ringAGeo = new THREE.TorusGeometry(1.78, 0.015, 16, 120);
+    const ringAMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      metalness: 0.85,
+      roughness: 0.25,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.4
+    });
+    const ringA = new THREE.Mesh(ringAGeo, ringAMat);
+    ringA.rotation.x = Math.PI / 2.8;
+    ringA.rotation.y = Math.PI / 8;
+    coreRoot.add(ringA);
 
-    const colorCyan = new THREE.Color(0x36d6f5);
-    const colorBlue = new THREE.Color(0x5577ff);
-    const colorViolet = new THREE.Color(0x9875ff);
+    // Ring B: Orthogonal Polar Ring
+    const ringBGeo = new THREE.TorusGeometry(2.05, 0.013, 16, 120);
+    const ringBMat = new THREE.MeshStandardMaterial({
+      color: 0x818cf8,
+      metalness: 0.85,
+      roughness: 0.25,
+      emissive: 0x4f46e5,
+      emissiveIntensity: 0.32
+    });
+    const ringB = new THREE.Mesh(ringBGeo, ringBMat);
+    ringB.rotation.x = -Math.PI / 3.2;
+    ringB.rotation.z = Math.PI / 5;
+    coreRoot.add(ringB);
 
-    const radius = 1.55;
-    for (let i = 0; i < particleCount; i++) {
-      const u = Math.random();
-      const v = Math.random();
-      const theta = u * 2.0 * Math.PI;
-      const phi = Math.acos(2.0 * v - 1.0);
-      const r = radius * (0.92 + Math.random() * 0.16);
+    // Delicate Calibration Hash Marks on Ring A
+    const hashGroup = new THREE.Group();
+    const hashGeo = new THREE.BoxGeometry(0.012, 0.06, 0.012);
+    const hashMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.65 });
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const hashMesh = new THREE.Mesh(hashGeo, hashMat);
+      hashMesh.position.set(Math.cos(angle) * 1.78, Math.sin(angle) * 1.78, 0);
+      hashMesh.rotation.z = angle + Math.PI / 2;
+      hashGroup.add(hashMesh);
+    }
+    ringA.add(hashGroup);
 
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
-      const z = r * Math.cos(phi);
+    // --- 4. Four Institutional Knowledge Anchor Nodes (Satellites) ---
+    // Represents: 1. Academics, 2. Regulations, 3. Hostels, 4. Directory
+    const satellitesGroup = new THREE.Group();
+    coreRoot.add(satellitesGroup);
 
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
+    const satelliteColors = [0x38bdf8, 0x34d399, 0xa78bfa, 0xfbbf24];
+    const satelliteMeshes: THREE.Mesh[] = [];
+    const satelliteRadius = 1.92;
 
-      originalPositions[i * 3] = x;
-      originalPositions[i * 3 + 1] = y;
-      originalPositions[i * 3 + 2] = z;
-
-      // Color variation across the sphere
-      const mixRatio = (y / radius + 1) / 2;
-      const pointColor = new THREE.Color();
-      if (mixRatio < 0.5) {
-        pointColor.lerpColors(colorCyan, colorBlue, mixRatio * 2);
-      } else {
-        pointColor.lerpColors(colorBlue, colorViolet, (mixRatio - 0.5) * 2);
-      }
-
-      colors[i * 3] = pointColor.r;
-      colors[i * 3 + 1] = pointColor.g;
-      colors[i * 3 + 2] = pointColor.b;
+    for (let i = 0; i < 4; i++) {
+      const satGeo = new THREE.OctahedronGeometry(0.08, 0);
+      const satMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        metalness: 0.9,
+        roughness: 0.15,
+        emissive: satelliteColors[i],
+        emissiveIntensity: 0.75
+      });
+      const satMesh = new THREE.Mesh(satGeo, satMat);
+      satelliteMeshes.push(satMesh);
+      satellitesGroup.add(satMesh);
     }
 
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    // Hairline connection rays between anchors and core
+    const rayGeo = new THREE.BufferGeometry();
+    const rayPositions = new Float32Array(4 * 2 * 3);
+    rayGeo.setAttribute('position', new THREE.BufferAttribute(rayPositions, 3));
+    const rayMat = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.22,
+      blending: THREE.AdditiveBlending
+    });
+    const rayLines = new THREE.LineSegments(rayGeo, rayMat);
+    coreRoot.add(rayLines);
 
-    // Create a circular particle texture
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      gradient.addColorStop(0.3, 'rgba(54, 214, 245, 0.8)');
-      gradient.addColorStop(0.7, 'rgba(85, 119, 255, 0.2)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 64, 64);
+    // --- 5. Micro Dust Field (Ambient Knowledge Constellation) ---
+    const dustCount = 80;
+    const dustGeo = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustCount * 3);
+    for (let i = 0; i < dustCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      const r = 2.2 + Math.random() * 0.9;
+      dustPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      dustPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      dustPositions[i * 3 + 2] = r * Math.cos(phi);
     }
-    const particleTexture = new THREE.CanvasTexture(canvas);
-
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.14,
-      map: particleTexture,
-      vertexColors: true,
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0x7dd3fc,
+      size: 0.05,
       transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-
-    const particleSystem = new THREE.Points(particleGeo, particleMat);
-    scene.add(particleSystem);
-
-    // --- Orbital Energy Ring 1 ---
-    const ring1Geo = new THREE.RingGeometry(1.85, 1.88, 64);
-    const ring1Mat = new THREE.MeshBasicMaterial({
-      color: 0x36d6f5,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.35,
+      opacity: 0.45,
       blending: THREE.AdditiveBlending
     });
-    const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
-    ring1.rotation.x = Math.PI / 3;
-    ring1.rotation.y = Math.PI / 6;
-    scene.add(ring1);
+    const dustPoints = new THREE.Points(dustGeo, dustMat);
+    coreRoot.add(dustPoints);
 
-    // --- Orbital Energy Ring 2 ---
-    const ring2Geo = new THREE.RingGeometry(2.05, 2.07, 64);
-    const ring2Mat = new THREE.MeshBasicMaterial({
-      color: 0x9875ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.25,
-      blending: THREE.AdditiveBlending
-    });
-    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-    ring2.rotation.x = -Math.PI / 4;
-    ring2.rotation.y = -Math.PI / 4;
-    scene.add(ring2);
-
-    // --- Mouse Parallax Interaction ---
-    let targetRotationX = 0;
-    let targetRotationY = 0;
-    let currentRotationX = 0;
-    let currentRotationY = 0;
+    // --- Mouse Parallax & Interaction Dynamics ---
+    let targetTiltX = 0;
+    let targetTiltY = 0;
+    let currentTiltX = 0;
+    let currentTiltY = 0;
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!interactive) return;
+      if (!interactive || prefersReducedMotion) return;
       const rect = container.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width - 0.5;
       const y = (e.clientY - rect.top) / rect.height - 0.5;
-      targetRotationY = x * 0.8;
-      targetRotationX = y * 0.8;
+      targetTiltY = x * 0.55;
+      targetTiltX = y * 0.55;
     };
 
-    if (interactive) {
+    if (interactive && !prefersReducedMotion) {
       window.addEventListener('mousemove', handleMouseMove);
     }
 
     // --- Animation Loop ---
     let animationFrameId: number;
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
 
     const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+
       const elapsed = clock.getElapsedTime();
+      const motionMultiplier = prefersReducedMotion ? 0.05 : 1.0;
 
-      // Smooth mouse interpolation (inertia)
-      currentRotationX += (targetRotationX - currentRotationX) * 0.05;
-      currentRotationY += (targetRotationY - currentRotationY) * 0.05;
+      // Smooth inertia parallax
+      currentTiltX += (targetTiltX - currentTiltX) * 0.045;
+      currentTiltY += (targetTiltY - currentTiltY) * 0.045;
 
-      // Base rotations
-      coreMesh.rotation.y = elapsed * 0.25 + currentRotationY;
-      coreMesh.rotation.x = elapsed * 0.15 + currentRotationX;
+      coreRoot.rotation.x = currentTiltX;
+      coreRoot.rotation.y = currentTiltY;
 
-      particleSystem.rotation.y = elapsed * 0.18 + currentRotationY * 0.7;
-      particleSystem.rotation.x = elapsed * 0.1 + currentRotationX * 0.7;
+      // Gentle floating levitation
+      coreRoot.position.y = Math.sin(elapsed * 0.7 * motionMultiplier) * 0.08;
 
-      ring1.rotation.z = elapsed * 0.35;
-      ring1.rotation.x = Math.PI / 3 + currentRotationX * 0.4;
-      ring1.rotation.y = Math.PI / 6 + currentRotationY * 0.4;
+      // Slow, majestic rotations of inner prism and kernel
+      glassMesh.rotation.y = elapsed * 0.16 * motionMultiplier;
+      glassMesh.rotation.x = elapsed * 0.09 * motionMultiplier;
 
-      ring2.rotation.z = -elapsed * 0.25;
-      ring2.rotation.x = -Math.PI / 4 + currentRotationX * 0.3;
-      ring2.rotation.y = -Math.PI / 4 + currentRotationY * 0.3;
+      wireMesh.rotation.y = glassMesh.rotation.y;
+      wireMesh.rotation.x = glassMesh.rotation.x;
 
-      // Breathing / undulating wave on particles
-      const posAttr = particleGeo.attributes.position as THREE.BufferAttribute;
-      const currentPos = posAttr.array as Float32Array;
+      kernelMesh.rotation.y = -elapsed * 0.22 * motionMultiplier;
+      kernelMesh.rotation.z = elapsed * 0.14 * motionMultiplier;
 
-      for (let i = 0; i < particleCount; i++) {
-        const ox = originalPositions[i * 3];
-        const oy = originalPositions[i * 3 + 1];
-        const oz = originalPositions[i * 3 + 2];
+      // Concentric gimbal counter-rotations
+      ringA.rotation.z = elapsed * 0.2 * motionMultiplier;
+      ringB.rotation.z = -elapsed * 0.16 * motionMultiplier;
 
-        // Wave factor based on angle & time
-        const wave = Math.sin(elapsed * 2.2 + ox * 2.0 + oy * 2.0) * 0.06;
-        currentPos[i * 3] = ox * (1 + wave);
-        currentPos[i * 3 + 1] = oy * (1 + wave);
-        currentPos[i * 3 + 2] = oz * (1 + wave);
+      dustPoints.rotation.y = elapsed * 0.05 * motionMultiplier;
+
+      // Orbiting satellites
+      const rayPosArray = rayGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < 4; i++) {
+        const satAngle = elapsed * 0.35 * motionMultiplier + (i * Math.PI) / 2;
+        const x = Math.cos(satAngle) * satelliteRadius;
+        const y = Math.sin(satAngle * 0.8) * 0.45;
+        const z = Math.sin(satAngle) * satelliteRadius;
+
+        satelliteMeshes[i].position.set(x, y, z);
+        satelliteMeshes[i].rotation.y = elapsed * 0.6;
+        satelliteMeshes[i].rotation.x = elapsed * 0.4;
+
+        // Update ray connecting satellite to center
+        const rayIdx = i * 6;
+        rayPosArray[rayIdx] = 0;
+        rayPosArray[rayIdx + 1] = 0;
+        rayPosArray[rayIdx + 2] = 0;
+        rayPosArray[rayIdx + 3] = x * 0.92;
+        rayPosArray[rayIdx + 4] = y * 0.92;
+        rayPosArray[rayIdx + 5] = z * 0.92;
       }
-      posAttr.needsUpdate = true;
-
-      // Inner glow pulsing
-      const glowScale = 1 + Math.sin(elapsed * 2.5) * 0.08;
-      glowMesh.scale.set(glowScale, glowScale, glowScale);
+      rayGeo.attributes.position.needsUpdate = true;
 
       renderer.render(scene, camera);
-      animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
@@ -252,24 +294,29 @@ export function AI3DOrb({ size = 260, className = '', interactive = true }: AI3D
     // --- Cleanup ---
     return () => {
       cancelAnimationFrame(animationFrameId);
-      if (interactive) {
+      if (interactive && !prefersReducedMotion) {
         window.removeEventListener('mousemove', handleMouseMove);
       }
+      renderer.dispose();
+      glassGeo.dispose();
+      glassMat.dispose();
+      wireGeo.dispose();
+      wireMat.dispose();
+      kernelGeo.dispose();
+      kernelMat.dispose();
+      ringAGeo.dispose();
+      ringAMat.dispose();
+      ringBGeo.dispose();
+      ringBMat.dispose();
+      hashGeo.dispose();
+      hashMat.dispose();
+      dustGeo.dispose();
+      dustMat.dispose();
+      rayGeo.dispose();
+      rayMat.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
-      renderer.dispose();
-      coreGeo.dispose();
-      coreMat.dispose();
-      glowGeo.dispose();
-      glowMat.dispose();
-      particleGeo.dispose();
-      particleMat.dispose();
-      particleTexture.dispose();
-      ring1Geo.dispose();
-      ring1Mat.dispose();
-      ring2Geo.dispose();
-      ring2Mat.dispose();
     };
   }, [size, interactive]);
 
@@ -283,9 +330,7 @@ export function AI3DOrb({ size = 260, className = '', interactive = true }: AI3D
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        margin: '0 auto',
-        position: 'relative',
-        filter: 'drop-shadow(0 0 35px rgba(54, 214, 245, 0.28))'
+        position: 'relative'
       }}
     />
   );

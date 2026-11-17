@@ -151,6 +151,112 @@ def replace_document(
     return {"status": "replacement_started", "document_id": doc.id}
 
 
+from app.models.chunk import DocumentChunk
+from app.rag.retriever import retrieve_relevant_chunks
+from pydantic import BaseModel
+
+class ProbeRetrievalRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+@router.get("/knowledge-stats")
+def get_knowledge_stats(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    docs = db.query(Document).filter(Document.is_active == True).all()
+    total_docs = len(docs)
+    total_chunks = sum(d.chunk_count or 0 for d in docs)
+    manual_count = sum(1 for d in docs if d.source_type == "manual" or not d.source_type)
+    crawler_count = sum(1 for d in docs if d.source_type == "crawler")
+
+    category_dist = {}
+    type_dist = {}
+    for d in docs:
+        cat = d.category or "General"
+        category_dist[cat] = category_dist.get(cat, 0) + 1
+
+        ext = os.path.splitext(d.filename or d.name)[1].lower() or ".web"
+        type_dist[ext] = type_dist.get(ext, 0) + 1
+
+    return {
+        "total_documents": total_docs,
+        "total_chunks": total_chunks,
+        "manual_documents_count": manual_count,
+        "crawler_documents_count": crawler_count,
+        "category_distribution": category_dist,
+        "file_type_distribution": type_dist
+    }
+
+
+@router.post("/probe-retrieval")
+def probe_retrieval(
+    req: ProbeRetrievalRequest, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(require_admin)
+):
+    if not req.query.strip():
+        return {"query": req.query, "results": []}
+
+    chunks = retrieve_relevant_chunks(req.query, top_k=req.top_k)
+    results = []
+    for c in chunks:
+        meta = c.get("metadata", {})
+        doc_id = meta.get("document_id")
+        doc = db.query(Document).filter(Document.id == doc_id).first() if doc_id else None
+
+        results.append({
+            "document_id": doc_id,
+            "document_name": meta.get("document_name") or (doc.name if doc else "Unknown"),
+            "category": meta.get("category") or (doc.category if doc else "General"),
+            "source_type": meta.get("source_type") or (doc.source_type if doc else "manual"),
+            "source_url": meta.get("source_url") or (doc.source_url if doc else None),
+            "page_number": c.get("page_number") or meta.get("page"),
+            "similarity_score": round(float(c.get("score", 0.0)), 4),
+            "text": c.get("text", "")
+        })
+
+    return {
+        "query": req.query,
+        "matched_count": len(results),
+        "results": results
+    }
+
+
+@router.get("/{document_id}/chunks")
+def get_document_chunks(
+    document_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(require_admin)
+):
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    chunks = db.query(DocumentChunk).filter(DocumentChunk.document_id == document_id).order_by(DocumentChunk.chunk_index.asc()).all()
+
+    chunk_data = []
+    for c in chunks:
+        text = c.text or ""
+        chunk_data.append({
+            "id": c.id,
+            "chunk_index": c.chunk_index,
+            "page_number": c.page_number,
+            "character_count": len(text),
+            "word_count": len(text.split()),
+            "text": text,
+            "metadata": c.metadata_json or {}
+        })
+
+    return {
+        "document_id": doc.id,
+        "document_name": doc.name,
+        "source_type": doc.source_type,
+        "source_url": doc.source_url,
+        "category": doc.category,
+        "version": doc.version,
+        "chunk_count": len(chunk_data),
+        "chunks": chunk_data
+    }
+
+
 @router.get("")
 def list_documents(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     return db.query(Document).filter(Document.is_active == True).order_by(Document.created_at.desc()).all()

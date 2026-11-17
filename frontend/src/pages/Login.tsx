@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Bot, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
-import { login, register } from '../services/auth';
+import { login, register, getCurrentUser } from '../services/auth';
 import './Login.css';
 
 type RoleType = 'STUDENT' | 'ORG_ADMIN' | 'ADMIN';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user?: any) => void;
   onBackToHome?: () => void;
 }
 
@@ -69,12 +69,20 @@ export default function Login({ onLogin, onBackToHome }: LoginProps) {
         });
 
         setSuccess('Account created successfully! Logging you in...');
+        let userData: any = null;
+        try {
+          userData = await getCurrentUser();
+        } catch {}
         setTimeout(() => {
-          onLogin();
-        }, 800);
+          onLogin(userData);
+        }, 600);
       } else {
         await login(email.trim().toLowerCase(), password);
-        onLogin();
+        let userData: any = null;
+        try {
+          userData = await getCurrentUser();
+        } catch {}
+        onLogin(userData);
       }
     } catch (err: any) {
       setError(err.message || (isSignUp ? 'Failed to create account' : 'Failed to login'));

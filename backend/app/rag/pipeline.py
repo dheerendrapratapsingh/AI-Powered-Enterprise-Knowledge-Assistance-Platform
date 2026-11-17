@@ -6,13 +6,25 @@ from app.models.user import User
 
 FALLBACK_MESSAGE = "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
 
+import re
+
 def is_draft_email_intent(question: str) -> bool:
-    q_lower = question.lower()
-    return any(k in q_lower for k in [
-        "draft an email", "compose an email", "write an email", 
-        "draft email", "compose email", "write email", "send an email",
-        "email template", "mail template", "draft a mail", "compose a mail"
-    ])
+    q_lower = question.lower().strip()
+    
+    # Exclude questions, complaints, or negative expressions about emails
+    negative_patterns = [
+        "why", "what i want", "don't want", "dont want", "did not ask", "didn't ask", 
+        "no email", "stop writing", "not an email", "why did you", "what did you", "who told you"
+    ]
+    if any(neg in q_lower for neg in negative_patterns):
+        return False
+        
+    imperative_patterns = [
+        r"\b(draft|compose|write|generate|prepare|send)\s+(a\s+|an\s+)?(formal\s+)?(email|mail)\b",
+        r"\b(email|mail)\s+(template|draft)\b",
+        r"^(draft|compose|write)\s+(an?\s+)?email"
+    ]
+    return any(re.search(pat, q_lower) for pat in imperative_patterns)
 
 def answer_question(question: str, user: User, conversation_history: list = None) -> dict:
     """

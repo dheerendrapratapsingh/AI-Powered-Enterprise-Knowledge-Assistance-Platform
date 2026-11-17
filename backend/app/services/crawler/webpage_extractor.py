@@ -79,6 +79,26 @@ def extract_webpage_content(html: str, base_url: str) -> ExtractedWebPage:
         elif parsed_target.netloc.lower() == base_domain or parsed_target.netloc.lower().endswith("." + base_domain):
             result.internal_links.add(norm_url)
 
+    # Next.js RSC App Router Payload Link & Doc Discovery
+    rsc_chunks = re.findall(r'self\.__next_f\.push\(\[1,\s*"(.*?)"\]\)', html, re.DOTALL)
+    rsc_combined = ""
+    if rsc_chunks:
+        rsc_combined = "".join(rsc_chunks).replace('\\"', '"').replace('\\n', '\n')
+        rsc_hrefs = re.findall(r'"href":\s*"([^"]+)"', rsc_combined)
+        for href in rsc_hrefs:
+            href = href.strip()
+            if not href or href.startswith(("#", "javascript:", "mailto:", "tel:")) or href.startswith("/_next"):
+                continue
+            absolute_url = urljoin(base_url, href)
+            norm_url = normalize_url(absolute_url)
+            parsed_target = urlparse(norm_url)
+            target_ext = "." + parsed_target.path.split(".")[-1].lower() if "." in parsed_target.path else ""
+
+            if target_ext in DOCUMENT_EXTENSIONS:
+                result.document_links.add(norm_url)
+            elif parsed_target.netloc.lower() == base_domain or parsed_target.netloc.lower().endswith("." + base_domain):
+                result.internal_links.add(norm_url)
+
     # 5. Extract Headings Hierarchy
     for h in soup.find_all(["h1", "h2", "h3"]):
         h_text = h.get_text(strip=True)
@@ -105,6 +125,11 @@ def extract_webpage_content(html: str, base_url: str) -> ExtractedWebPage:
             extracted_text = main_content.get_text(separator="\n", strip=True)
         else:
             extracted_text = soup.get_text(separator="\n", strip=True)
+
+        if len(extracted_text.strip()) < 50 and rsc_combined:
+            text_matches = re.findall(r'"children":\s*"([^"]+)"', rsc_combined)
+            if text_matches:
+                extracted_text = "\n".join(text_matches)
 
     result.raw_text = extracted_text or ""
 

@@ -24,7 +24,7 @@ from app.routers.auth import get_current_user
 from app.rag.pipeline import answer_question, is_draft_email_intent, FALLBACK_MESSAGE
 from app.rag.retriever import retrieve_relevant_chunks
 from app.rag.prompt_builder import build_streaming_prompt
-from app.rag.llm_client import stream_response_tokens
+from app.rag.llm_client import stream_response_tokens, check_gemini_configured, check_ollama_health
 from app.rag.cache import get_cached_response, set_cached_response
 from app.rag.intent import classify_query_intent, QueryIntent, get_fast_conversational_response
 
@@ -334,8 +334,26 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                     full_answer = "".join(collected_tokens)
             else:
                 prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history, intent=intent)
+                
+                # Resilient fallback if neither Gemini nor Ollama is configured
+                fast_fallback = None
+                if not check_gemini_configured() and not check_ollama_health():
+                    excerpts = []
+                    for idx, c in enumerate(allowed_chunks[:2], 1):
+                        name = c.get("metadata", {}).get("document_name", "Official University Document")
+                        text_snip = c.get("text", "").strip()
+                        excerpts.append(f"**[{idx}] From {name}:**\n{text_snip}")
+                    
+                    joined_excerpts = "\n\n".join(excerpts)
+                    fast_fallback = (
+                        f"*(Extractive Grounding Mode — verified directly from university knowledge base)*\n\n"
+                        f"{joined_excerpts}\n\n"
+                        f"---\n"
+                        f"💡 *Note: To enable generative AI synthesis, add your `GEMINI_API_KEY` to `.env` or start Ollama (`ollama run qwen2.5:1.5b`).*"
+                    )
+
                 collected_tokens = []
-                for token in stream_response_tokens(prompt):
+                for token in stream_response_tokens(prompt, fast_text=fast_fallback):
                     collected_tokens.append(token)
                     yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
                 full_answer = "".join(collected_tokens)
