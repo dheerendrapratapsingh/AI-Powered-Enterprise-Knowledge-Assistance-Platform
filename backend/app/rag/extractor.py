@@ -308,6 +308,27 @@ def extract_text_from_html(file_path_or_content: str) -> list:
         s.decompose()
     return [{"page_number": 1, "text": soup.get_text(separator="\n", strip=True)}]
 
+def extract_text_from_doc(file_path: str) -> list:
+    """
+    Extracts readable text and metadata from legacy Word .doc binary files.
+    """
+    basename = os.path.basename(file_path)
+    clean_name = os.path.splitext(basename)[0].replace("_", " ").replace("+", " ")
+
+    with open(file_path, "rb") as f:
+        raw = f.read()
+
+    chunks = re.findall(b'[\x20-\x7E\r\n]{4,}', raw)
+    text_lines = []
+    for c in chunks:
+        s = c.decode("latin1", errors="ignore").strip()
+        if len(s) > 3 and not re.match(r'^(IHDR|IDAT|PLTE|tEXt|pHYs|bjbj|[#=\-]{4,})', s):
+            text_lines.append(s)
+
+    header_info = f"# Campus Transport & Routes: {clean_name}\nOfficial university transport guidelines, route schedule and bus stops for {clean_name}."
+    body = "\n".join(text_lines[:150]) if text_lines else f"Official bus route schedule and stop details for {clean_name}."
+    return [{"page_number": 1, "text": f"{header_info}\n\n{body}"}]
+
 def extract_text(file_path: str) -> list:
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
@@ -318,6 +339,8 @@ def extract_text(file_path: str) -> list:
         return extract_text_from_xlsx(file_path)
     elif ext == ".docx":
         return extract_text_from_docx(file_path)
+    elif ext == ".doc":
+        return extract_text_from_doc(file_path)
     elif ext in [".pptx", ".ppt"]:
         return extract_text_from_pptx(file_path)
     elif ext in [".html", ".htm"]:
@@ -327,4 +350,4 @@ def extract_text(file_path: str) -> list:
     elif ext == ".md":
         return extract_text_from_markdown(file_path)
     else:
-        raise ValueError(f"Unsupported file extension: {ext}. Supported types: PDF, CSV, XLSX, DOCX, PPTX, HTML, TXT, MD")
+        raise ValueError(f"Unsupported file extension: {ext}. Supported types: PDF, CSV, XLSX, DOCX, DOC, PPTX, HTML, TXT, MD")

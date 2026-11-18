@@ -304,6 +304,10 @@ export function EmployeeChat() {
           loadConversations();
         },
         onError: (errMsg) => {
+          if (errMsg && errMsg.toLowerCase().includes('conversation not found')) {
+            setConversationId(null);
+            loadConversations();
+          }
           setMessages(prev => {
             const updated = [...prev];
             const lastIdx = updated.length - 1;

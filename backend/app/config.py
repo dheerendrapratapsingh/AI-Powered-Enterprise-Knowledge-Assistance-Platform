@@ -3,9 +3,10 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CANONICAL_DB_PATH = os.path.join(BACKEND_DIR, 'copilot.db').replace('\\', '/')
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(BACKEND_DIR, 'copilot.db')}")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{CANONICAL_DB_PATH}")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "your_jwt_secret_key_here")
 
     # Cloud LLM Engine (Google Gemini - Zero GPU required)
@@ -51,3 +52,13 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+
+# Ensure SQLite URL is always absolute and points to the canonical DB file regardless of execution cwd
+if settings.DATABASE_URL.startswith("sqlite:///.") or settings.DATABASE_URL == "sqlite:///copilot.db":
+    settings.DATABASE_URL = f"sqlite:///{CANONICAL_DB_PATH}"
+
+# Ensure FAISS_DIR and UPLOAD_DIR are absolute
+if not os.path.isabs(settings.FAISS_DIR):
+    settings.FAISS_DIR = os.path.abspath(os.path.join(BACKEND_DIR, settings.FAISS_DIR))
+if not os.path.isabs(settings.UPLOAD_DIR):
+    settings.UPLOAD_DIR = os.path.abspath(os.path.join(BACKEND_DIR, settings.UPLOAD_DIR))

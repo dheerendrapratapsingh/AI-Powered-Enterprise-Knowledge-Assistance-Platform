@@ -98,6 +98,29 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         if curr_candidates:
             candidates = curr_candidates + [c for c in candidates if c not in curr_candidates]
 
+    # 5. Transport, Bus Routes & Schedules disambiguation
+    transport_keywords = ["transport", "bus", "buses", "route", "routes", "commute", "pickup", "stops", "bus stand", "timing", "schedule", "guntur", "vijayawada", "tenali"]
+    if any(k in q_lower for k in transport_keywords):
+        transport_candidates = [
+            c for c in candidates
+            if any(term in c.get("metadata", {}).get("document_name", "").lower() for term in ["bus", "transport", "route"])
+            or "campus transport" in c.get("text", "").lower()
+            or "bus routes" in c.get("text", "").lower()
+        ]
+        if transport_candidates:
+            candidates = transport_candidates + [c for c in candidates if c not in transport_candidates]
+
+    # 6. Placement & Career routing
+    placement_keywords = ["placement", "placements", "cdc", "dream offer", "super dream", "ctc", "recruit", "recruiter", "internship"]
+    if any(k in q_lower for k in placement_keywords):
+        placement_candidates = [
+            c for c in candidates
+            if any(term in c.get("metadata", {}).get("document_name", "").lower() for term in ["placement", "cdc", "career"])
+            or "placement norms" in c.get("text", "").lower()
+        ]
+        if placement_candidates:
+            candidates = placement_candidates + [c for c in candidates if c not in placement_candidates]
+
     results = []
     for item in candidates:
         if item["score"] >= settings.SIMILARITY_THRESHOLD:

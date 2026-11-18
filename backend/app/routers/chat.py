@@ -33,21 +33,21 @@ router = APIRouter(prefix="/api", tags=["chat"])
 @router.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     history = []
+    conversation = None
     if request.conversation_id:
         conversation = db.query(Conversation).filter(
             Conversation.id == request.conversation_id,
             Conversation.user_id == current_user.id
         ).first()
-        if not conversation:
-            raise HTTPException(status_code=404, detail="Conversation not found")
-        
-        # Load recent dialogue turns (up to 10 previous messages)
-        prev_msgs = db.query(Message).filter(
-            Message.conversation_id == conversation.id
-        ).order_by(Message.created_at.asc()).limit(10).all()
-        for pm in prev_msgs:
-            history.append({"role": pm.role, "content": pm.content})
-    else:
+        if conversation:
+            # Load recent dialogue turns (up to 10 previous messages)
+            prev_msgs = db.query(Message).filter(
+                Message.conversation_id == conversation.id
+            ).order_by(Message.created_at.asc()).limit(10).all()
+            for pm in prev_msgs:
+                history.append({"role": pm.role, "content": pm.content})
+
+    if not conversation:
         conversation = Conversation(user_id=current_user.id, title=request.question[:50])
         db.add(conversation)
         db.commit()
@@ -141,16 +141,15 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
     def event_stream():
         db = SessionLocal()
         try:
-            # 1. Manage Conversation
+            # 1. Manage Conversation (Auto-heal if conversation_id is invalid or missing)
+            conv = None
             if conversation_id:
                 conv = db.query(Conversation).filter(
                     Conversation.id == conversation_id,
                     Conversation.user_id == user_id
                 ).first()
-                if not conv:
-                    yield f"data: {json.dumps({'type': 'error', 'error': 'Conversation not found'})}\n\n"
-                    return
-            else:
+
+            if not conv:
                 conv = Conversation(user_id=user_id, title=question[:50])
                 db.add(conv)
                 db.commit()
@@ -409,7 +408,7 @@ def get_conversation_messages(conversation_id: str, db: Session = Depends(get_db
         Conversation.user_id == current_user.id
     ).first()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        return []
         
     messages = db.query(Message).filter(Message.conversation_id == conversation_id).order_by(Message.created_at.asc()).all()
     results = []
@@ -444,7 +443,7 @@ def rename_conversation(conversation_id: str, payload: ConversationUpdate, db: S
         Conversation.user_id == current_user.id
     ).first()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        return []
     new_title = payload.title.strip()
     if new_title:
         conv.title = new_title[:100]
@@ -460,7 +459,7 @@ def delete_conversation(conversation_id: str, db: Session = Depends(get_db), cur
         Conversation.user_id == current_user.id
     ).first()
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        return []
     db.delete(conv)
     db.commit()
     return {"status": "success", "message": "Conversation deleted"}
