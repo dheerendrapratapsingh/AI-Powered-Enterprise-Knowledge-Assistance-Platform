@@ -19,7 +19,7 @@ def check_ollama_health() -> bool:
 
 def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
     api_key = settings.GEMINI_API_KEY.strip()
-    model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash")
+    model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
@@ -29,7 +29,7 @@ def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
             }
         ]
     }
-    with requests.post(url, headers=headers, json=payload, stream=True, timeout=40) as resp:
+    with requests.post(url, headers=headers, json=payload, stream=True, timeout=15) as resp:
         if resp.status_code != 200:
             raise RuntimeError(f"Gemini API returned status {resp.status_code}: {resp.text}")
         for line in resp.iter_lines():
@@ -80,7 +80,7 @@ def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
         }
     }
     try:
-        response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
+        response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=10)
         if response.status_code != 200:
             raise RuntimeError(f"Ollama generation failed: {response.text}")
         for line in response.iter_lines():
@@ -118,18 +118,18 @@ def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str,
 
 def generate_response(prompt: str) -> dict:
     """
-    Generates a structured JSON response prioritizing Gemini 2.0 Flash with Ollama fallback.
+    Generates a structured JSON response prioritizing Gemini 3.5 Flash Lite with Ollama fallback.
     """
     if check_gemini_configured():
         try:
             api_key = settings.GEMINI_API_KEY.strip()
-            model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash")
+            model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"response_mime_type": "application/json"}
             }
-            resp = requests.post(url, json=payload, timeout=30)
+            resp = requests.post(url, json=payload, timeout=15)
             if resp.status_code == 200:
                 data = resp.json()
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -137,13 +137,15 @@ def generate_response(prompt: str) -> dict:
                     return json.loads(text)
                 except Exception:
                     return {"answer": text, "response_type": "answer", "sources": []}
+            else:
+                logger.warning(f"Gemini API error ({resp.status_code}): {resp.text[:100]}")
         except Exception as e:
             logger.warning(f"Google Gemini JSON generation failed ({e}), falling back to Ollama...")
 
     # Fallback to Ollama
     if not check_ollama_health():
         return {
-            "answer": "AI generation service is currently unavailable. Please configure GEMINI_API_KEY in your .env file or start local Ollama.",
+            "answer": "AI generation service is currently unavailable. Please check your GEMINI_API_KEY in .env or ensure internet connectivity.",
             "response_type": "insufficient_information",
             "sources": []
         }
@@ -159,12 +161,20 @@ def generate_response(prompt: str) -> dict:
             "temperature": 0.2
         }
     }
-    response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=60)
-    if response.status_code != 200:
-        raise RuntimeError(f"Ollama generation failed: {response.text}")
-    result_text = response.json().get("response", "{}")
     try:
-        return json.loads(result_text)
-    except Exception:
-        return {"answer": result_text, "response_type": "answer", "sources": []}
+        response = requests.post(f"{settings.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=10)
+        if response.status_code == 200:
+            result_text = response.json().get("response", "{}")
+            try:
+                return json.loads(result_text)
+            except Exception:
+                return {"answer": result_text, "response_type": "answer", "sources": []}
+    except Exception as e:
+        logger.warning(f"Ollama generation fallback failed ({e})")
+
+    return {
+        "answer": "AI generation service is currently unavailable. Please verify your GEMINI_API_KEY or local Ollama service.",
+        "response_type": "insufficient_information",
+        "sources": []
+    }
 
