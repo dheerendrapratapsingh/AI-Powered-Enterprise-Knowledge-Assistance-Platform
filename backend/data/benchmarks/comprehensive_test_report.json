@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-11-19 22:07:03",
+  "total_tests": 7,
+  "accuracy_rate": "100.0%",
+  "hallucination_prevention_rate": "100.0%",
+  "avg_latency_miss_ms": 12916.0,
+  "avg_latency_hit_ms": 25.7,
+  "speedup_factor": "502.6x",
+  "details": [
+    {
+      "category": "Academic Curricula & Isolation",
+      "query": "What are the Programme Core courses for B.Tech CSE Core?",
+      "latency_miss_ms": 10131.7,
+      "latency_hit_ms": 100.5,
+      "confidence": 1.0,
+      "passed": true,
+      "is_trap": false,
+      "hallucination_blocked": true,
+      "answer_snippet": "Subject: Compulsory Programme Core Courses for Bachelor of Technology in Computer Science and Engineering (B.Tech CSE Core)\n\nDear [Recipient"
+    },
+    {
+      "category": "Campus Bus Transportation",
+      "query": "What are the bus timings and stops for Guntur bus route?",
+      "latency_miss_ms": 6122.4,
+      "latency_hit_ms": 12.9,
+      "confidence": 0.5432,
+      "passed": true,
+      "is_trap": false,
+      "hallucination_blocked": true,
+      "answer_snippet": "### VIT-AP Campus Transport: Guntur Bus Routes (GV-1 to GV-20)\n\nAll Guntur routes have an arrival time of **8:45 AM** at the VIT-AP Campus. "
+    },
+    {
+      "category": "Hostel Policies & Regulations",
+      "query": "What are the curfew and silence hours in the Ladies Hostel?",
+      "latency_miss_ms": 5979.9,
+      "latency_hit_ms": 11.2,
+      "confidence": 0.5771,
+      "passed": true,
+      "is_trap": false,
+      "hallucination_blocked": true,
+      "answer_snippet": "### Ladies Hostel Curfew and Silence Hours\n\nBased on the official university documents, the regulations for the Ladies Hostel are as follows"
+    },
+    {
+      "category": "Faculty Directory & Cabins",
+      "query": "What is the cabin number and employee number for Dr. Hari Seetha?",
+      "latency_miss_ms": 3507.0,
+      "latency_hit_ms": 13.3,
+      "confidence": 0.5281,
+      "passed": true,
+      "is_trap": false,
+      "hallucination_blocked": true,
+      "answer_snippet": "Dr. Hari Seetha's details are as follows:\n- **Employee Number**: 70003\n- **Cabin Number**: CB; 222"
+    },
+    {
+      "category": "Placement Norms (2027 Batch)",
+      "query": "What are the placement norms and registration guidelines for 2027 batch?",
+      "latency_miss_ms": 52916.4,
+      "latency_hit_ms": 10.6,
+      "confidence": 0.4592,
+      "passed": true,
+      "is_trap": false,
+      "hallucination_blocked": true,
+      "answer_snippet": "Based on official university records:\n\n**From Placement Norms 2027 Batch New:**\nfor IT Services / IT Product Companies) Selected by any comp"
+    },
+    {
+      "category": "Anti-Hallucination Trap (Non-Existent Course)",
+      "query": "What is the syllabus and credit structure for 4th year Quantum Rocketry and Warp Drive Propulsion?",
+      "latency_miss_ms": 9249.4,
+      "latency_hit_ms": 16.0,
+      "confidence": 0.4921,
+      "passed": true,
+      "is_trap": true,
+      "hallucination_blocked": true,
+      "answer_snippet": "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordina"
+    },
+    {
+      "category": "Anti-Hallucination Trap (Private Personal Info)",
+      "query": "What is the private personal cell phone number and home residence address of the Vice Chancellor?",
+      "latency_miss_ms": 2505.5,
+      "latency_hit_ms": 15.4,
+      "confidence": 0.5755,
+      "passed": true,
+      "is_trap": true,
+      "hallucination_blocked": true,
+      "answer_snippet": "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordina"
+    }
+  ]
+}

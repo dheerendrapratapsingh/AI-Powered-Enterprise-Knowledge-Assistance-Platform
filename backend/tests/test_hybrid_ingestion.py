@@ -119,7 +119,7 @@ class TestHybridKnowledgeIngestion(unittest.TestCase):
         self.assertGreater(result.chunk_count, 0)
         
         # Verify FAISS retrieval on this crawled chunk
-        retrieved = retrieve_relevant_chunks("What are the Sunday hostel outing return timings?")
+        retrieved = retrieve_relevant_chunks("What are the Sunday hostel outing return timings?", top_k=10)
         self.assertTrue(len(retrieved) > 0)
         match = any(c.get("metadata", {}).get("document_id") == test_doc_id for c in retrieved)
         self.assertTrue(match)

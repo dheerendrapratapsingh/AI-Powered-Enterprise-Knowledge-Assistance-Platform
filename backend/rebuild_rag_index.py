@@ -11,10 +11,11 @@ sys.path.append(os.path.abspath("backend"))
 from app.config import settings
 from app.rag.embedder import get_embedding_model
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_DIR = os.path.abspath(settings.FAISS_DIR)
 INDEX_PATH = os.path.join(INDEX_DIR, "vitap.index")
 METADATA_PATH = os.path.join(INDEX_DIR, "vitap_metadata.json")
-DB_PATH = os.path.abspath("backend/copilot.db")
+DB_PATH = os.path.join(BACKEND_DIR, "copilot.db")
 
 print("==================================================")
 print("STARTING HIGH-ACCURACY RAG RE-INDEXING & REBUILD")
@@ -131,10 +132,12 @@ def rebuild_index():
         normalize_embeddings=True
     ).astype("float32")
 
-    print(f"[4/5] Building FAISS IndexFlatIP(384)...")
+    print(f"[4/5] Building FAISS IndexIDMap(IndexFlatIP(384))...")
     dim = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
+    base_index = faiss.IndexFlatIP(dim)
+    index = faiss.IndexIDMap(base_index)
+    ids = np.arange(0, len(embeddings)).astype("int64")
+    index.add_with_ids(embeddings, ids)
 
     # Save to canonical backend path
     os.makedirs(INDEX_DIR, exist_ok=True)
@@ -164,9 +167,11 @@ def rebuild_index():
     conn.commit()
     conn.close()
 
-    import shutil
-    shutil.copy2(DB_PATH, os.path.abspath("copilot.db"))
-    print("Database synchronized to workspace root copilot.db.")
+    root_db = os.path.abspath(os.path.join(BACKEND_DIR, "..", "copilot.db"))
+    if os.path.abspath(DB_PATH) != os.path.abspath(root_db):
+        import shutil
+        shutil.copy2(DB_PATH, root_db)
+        print("Database synchronized to workspace root copilot.db.")
 
     print("\n==================================================")
     print("RE-INDEXING COMPLETE:")

@@ -17,10 +17,19 @@ def check_ollama_health() -> bool:
     except requests.RequestException:
         return False
 
+def _get_gemini_candidate_models() -> list:
+    primary = getattr(settings, "GEMINI_MODEL", "gemini-3.1-flash-lite").strip()
+    defaults = [primary, "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3-flash-preview"]
+    seen = set()
+    result = []
+    for m in defaults:
+        if m and m not in seen:
+            seen.add(m)
+            result.append(m)
+    return result
+
 def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
     api_key = settings.GEMINI_API_KEY.strip()
-    model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
         "contents": [
@@ -29,26 +38,42 @@ def _stream_gemini_tokens(prompt: str) -> Generator[str, None, None]:
             }
         ]
     }
-    with requests.post(url, headers=headers, json=payload, stream=True, timeout=15) as resp:
-        if resp.status_code != 200:
-            raise RuntimeError(f"Gemini API returned status {resp.status_code}: {resp.text}")
-        for line in resp.iter_lines():
-            if not line:
-                continue
-            line_str = line.decode("utf-8")
-            if line_str.startswith("data: "):
-                data_json = line_str[6:]
-                try:
-                    data = json.loads(data_json)
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        for p in parts:
-                            text = p.get("text", "")
-                            if text:
-                                yield text
-                except Exception:
-                    continue
+    
+    last_err = None
+    for model in _get_gemini_candidate_models():
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
+        try:
+            with requests.post(url, headers=headers, json=payload, stream=True, timeout=12) as resp:
+                if resp.status_code == 200:
+                    streamed_any = False
+                    for line in resp.iter_lines():
+                        if not line:
+                            continue
+                        line_str = line.decode("utf-8")
+                        if line_str.startswith("data: "):
+                            data_json = line_str[6:]
+                            try:
+                                data = json.loads(data_json)
+                                candidates = data.get("candidates", [])
+                                if candidates:
+                                    parts = candidates[0].get("content", {}).get("parts", [])
+                                    for p in parts:
+                                        text = p.get("text", "")
+                                        if text:
+                                            streamed_any = True
+                                            yield text
+                            except Exception:
+                                continue
+                    if streamed_any:
+                        return
+                else:
+                    last_err = f"Status {resp.status_code} on {model}"
+                    logger.warning(f"Gemini {model} returned {resp.status_code}, trying next candidate...")
+        except Exception as e:
+            last_err = str(e)
+            logger.warning(f"Gemini {model} stream failed ({e}), trying next candidate...")
+
+    raise RuntimeError(f"All Gemini models exhausted. Last error: {last_err}")
 
 def _stream_ollama_tokens(prompt: str) -> Generator[str, None, None]:
     if not check_ollama_health():
@@ -118,29 +143,29 @@ def stream_response_tokens(prompt: str, fast_text: str = None) -> Generator[str,
 
 def generate_response(prompt: str) -> dict:
     """
-    Generates a structured JSON response prioritizing Gemini 3.5 Flash Lite with Ollama fallback.
+    Generates a structured JSON response prioritizing Google Gemini with Ollama fallback.
     """
     if check_gemini_configured():
-        try:
-            api_key = settings.GEMINI_API_KEY.strip()
-            model = getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite")
+        api_key = settings.GEMINI_API_KEY.strip()
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"response_mime_type": "application/json"}
+        }
+        for model in _get_gemini_candidate_models():
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"response_mime_type": "application/json"}
-            }
-            resp = requests.post(url, json=payload, timeout=15)
-            if resp.status_code == 200:
-                data = resp.json()
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                try:
-                    return json.loads(text)
-                except Exception:
-                    return {"answer": text, "response_type": "answer", "sources": []}
-            else:
-                logger.warning(f"Gemini API error ({resp.status_code}): {resp.text[:100]}")
-        except Exception as e:
-            logger.warning(f"Google Gemini JSON generation failed ({e}), falling back to Ollama...")
+            try:
+                resp = requests.post(url, json=payload, timeout=12)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    try:
+                        return json.loads(text)
+                    except Exception:
+                        return {"answer": text, "response_type": "answer", "sources": []}
+                else:
+                    logger.warning(f"Gemini {model} error ({resp.status_code}), trying next candidate...")
+            except Exception as e:
+                logger.warning(f"Gemini {model} JSON generation failed ({e}), trying next candidate...")
 
     # Fallback to Ollama
     if not check_ollama_health():

@@ -25,7 +25,7 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
     query_np = np.array([query_embedding]).astype('float32')
     faiss.normalize_L2(query_np)
 
-    k_to_search = min(max(top_k * 6, 30), index_manager.index.ntotal)
+    k_to_search = min(max(top_k * 12, 60), index_manager.index.ntotal)
     distances, indices = index_manager.index.search(query_np, k_to_search)
 
     candidates = []
@@ -42,40 +42,62 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         candidates.append(item)
 
     # 1. Faculty / Directory query detection
-    faculty_keywords = ["cabin", "faculty", "professor", "prof", "dr.", "dr ", "emp no", "employee", "contact", "who is", "where is", "department of", "apc"]
+    faculty_keywords = ["cabin", "faculty", "professor", "prof.", "prof ", "dr.", "dr ", "emp no", "employee no", "cabin no", "staff directory"]
     is_faculty_query = any(k in q_lower for k in faculty_keywords)
     if is_faculty_query:
         fac_candidates = [
             c for c in candidates 
             if any(term in c.get("metadata", {}).get("document_name", "").lower() for term in ["faculty", "contact", "employee", "scope", "apc"])
             or "directory:" in c.get("text", "").lower()
+            or "cabin no" in c.get("text", "").lower()
         ]
         if fac_candidates:
-            candidates = fac_candidates
+            # Check for direct faculty name matching in chunks
+            name_tokens = [w for w in q_lower.replace("?", "").replace(".", "").replace(",", "").split() if len(w) > 3 and w not in ["where", "what", "which", "cabin", "number", "faculty", "professor", "details", "contact"]]
+            direct_name_matches = []
+            for c in fac_candidates:
+                c_text = c.get("text", "").lower()
+                if any(nt in c_text for nt in name_tokens):
+                    direct_name_matches.append(c)
+            if direct_name_matches:
+                candidates = direct_name_matches + [c for c in fac_candidates if c not in direct_name_matches]
+            else:
+                candidates = fac_candidates + [c for c in candidates if c not in fac_candidates]
 
     # 2. Specific Degree program disambiguation
-    elif "b.com" in q_lower or "commerce" in q_lower:
+    if "b.com" in q_lower or "commerce" in q_lower:
         deg = [c for c in candidates if "b.com" in c.get("metadata", {}).get("document_name", "").lower() or "commerce" in c.get("text", "").lower()]
-        if deg: candidates = deg
+        if deg: candidates = deg + [c for c in candidates if c not in deg]
     elif "bba" in q_lower or "business administration" in q_lower:
         deg = [c for c in candidates if "bba" in c.get("metadata", {}).get("document_name", "").lower() or "business administration" in c.get("text", "").lower()]
-        if deg: candidates = deg
+        if deg: candidates = deg + [c for c in candidates if c not in deg]
     elif "dual degree in arts" in q_lower or "b.a" in q_lower or "m.a" in q_lower or "arts" in q_lower:
         deg = [c for c in candidates if any(t in c.get("metadata", {}).get("document_name", "").lower() for t in ["b.a", "m.a", "arts"])]
-        if deg: candidates = deg
+        if deg: candidates = deg + [c for c in candidates if c not in deg]
     elif "csbs" in q_lower or "business systems" in q_lower:
         deg = [c for c in candidates if "csbs" in c.get("metadata", {}).get("document_name", "").lower() or "business systems" in c.get("text", "").lower()]
-        if deg: candidates = deg
-    elif ("cse core" in q_lower or "cse" in q_lower or "computer science and engineering" in q_lower) and "csbs" not in q_lower:
-        deg = [
+        if deg: candidates = deg + [c for c in candidates if c not in deg]
+    elif ("cse" in q_lower or "computer science" in q_lower) and "csbs" not in q_lower:
+        cse_cands = [
             c for c in candidates 
             if "cse" in c.get("metadata", {}).get("document_name", "").lower() 
             and "csbs" not in c.get("metadata", {}).get("document_name", "").lower()
         ]
-        if deg: candidates = deg
+        if cse_cands:
+            if "core" in q_lower:
+                core_cands = [c for c in cse_cands if "core" in c.get("metadata", {}).get("document_name", "").lower() or "core" in c.get("text", "").lower()]
+                if core_cands:
+                    candidates = core_cands + [c for c in candidates if c not in core_cands]
+                else:
+                    candidates = cse_cands + [c for c in candidates if c not in cse_cands]
+            else:
+                candidates = cse_cands + [c for c in candidates if c not in cse_cands]
+    elif "mechanical" in q_lower or "mech" in q_lower:
+        mech = [c for c in candidates if "mechanical" in c.get("metadata", {}).get("document_name", "").lower()]
+        if mech: candidates = mech + [c for c in candidates if c not in mech]
     elif "hostel" in q_lower or "outing" in q_lower or "mess" in q_lower or "curfew" in q_lower:
         hostel = [c for c in candidates if "hostel" in c.get("metadata", {}).get("document_name", "").lower() or "hostel" in c.get("text", "").lower()]
-        if hostel: candidates = hostel
+        if hostel: candidates = hostel + [c for c in candidates if c not in hostel]
 
     # 3. Location / Address / Campus Contact detection
     loc_keywords = ["address", "location", "located", "where is", "how to reach", "directions", "city", "amaravati", "situated", "pincode", "postal", "campus address"]
@@ -99,8 +121,8 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
             candidates = curr_candidates + [c for c in candidates if c not in curr_candidates]
 
     # 5. Transport, Bus Routes & Schedules disambiguation
-    transport_keywords = ["transport", "bus", "buses", "route", "routes", "commute", "pickup", "stops", "bus stand", "timing", "schedule", "guntur", "vijayawada", "tenali"]
-    if any(k in q_lower for k in transport_keywords):
+    is_transport_query = any(k in q_lower for k in ["transport", "bus", "buses", "commute", "pickup point", "bus route", "bus routes", "bus stand", "bus timing", "bus schedule"]) or (("route" in q_lower or "stop" in q_lower) and any(c in q_lower for c in ["guntur", "vijayawada", "tenali", "campus"]))
+    if is_transport_query and not ("hostel" in q_lower or "outing" in q_lower):
         transport_candidates = [
             c for c in candidates
             if any(term in c.get("metadata", {}).get("document_name", "").lower() for term in ["bus", "transport", "route"])
