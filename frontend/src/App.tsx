@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { PlatformAdmin } from './pages/PlatformAdmin';
+import { PlatformOrgs } from './pages/PlatformOrgs';
 import { EmployeeChat } from './pages/EmployeeChat';
 import { OrgAdmin } from './pages/OrgAdmin';
+import { DocumentBase } from './pages/DocumentBase';
 import { HomePage } from './pages/HomePage';
 import { ForStudentsPage } from './pages/ForStudentsPage';
 import { HowToUsePage } from './pages/HowToUsePage';
@@ -17,6 +19,18 @@ interface RouteHandlerProps {
   checkAuth: () => Promise<any>;
 }
 
+export function getRedirectPathForUser(u: any): string {
+  if (!u) return '/login';
+  const role = (u.role || '').toUpperCase();
+  if (role === 'ADMIN') {
+    return '/admin/platform';
+  }
+  if (role === 'ORG_ADMIN') {
+    return '/org';
+  }
+  return '/copilot';
+}
+
 // Unified Chat / Copilot Route Handler - Opens the chat for any authenticated user
 function CopilotRouteHandler({ user, checkAuth }: RouteHandlerProps) {
   const navigate = useNavigate();
@@ -24,8 +38,9 @@ function CopilotRouteHandler({ user, checkAuth }: RouteHandlerProps) {
   if (!user) {
     return (
       <Login
-        onLogin={async () => {
-          await checkAuth();
+        onLogin={async (userData) => {
+          const u = await checkAuth();
+          navigate(getRedirectPathForUser(u || userData), { replace: true });
         }}
         onBackToHome={() => navigate('/')}
       />
@@ -46,9 +61,9 @@ function OrgRouteHandler({ user, checkAuth }: RouteHandlerProps) {
   if (!user) {
     return (
       <Login
-        onLogin={async () => {
-          await checkAuth();
-          navigate('/org', { replace: true });
+        onLogin={async (userData) => {
+          const u = await checkAuth();
+          navigate(getRedirectPathForUser(u || userData), { replace: true });
         }}
         onBackToHome={() => navigate('/')}
       />
@@ -73,9 +88,9 @@ function PlatformAdminRouteHandler({ user, checkAuth }: RouteHandlerProps) {
   if (!user) {
     return (
       <Login
-        onLogin={async () => {
-          await checkAuth();
-          navigate('/admin/platform', { replace: true });
+        onLogin={async (userData) => {
+          const u = await checkAuth();
+          navigate(getRedirectPathForUser(u || userData), { replace: true });
         }}
         onBackToHome={() => navigate('/')}
       />
@@ -156,20 +171,14 @@ function AppRoutes({ user, checkAuth }: { user: any; checkAuth: () => Promise<an
         element={
           user ? (
             <Navigate
-              to={user.role === 'ORG_ADMIN' ? '/org' : user.role === 'ADMIN' ? '/admin/platform' : '/copilot'}
+              to={getRedirectPathForUser(user)}
               replace
             />
           ) : (
             <Login
-              onLogin={async () => {
+              onLogin={async (userData) => {
                 const u = await checkAuth();
-                if (u?.role === 'ORG_ADMIN') {
-                  navigate('/org', { replace: true });
-                } else if (u?.role === 'ADMIN') {
-                  navigate('/admin/platform', { replace: true });
-                } else {
-                  navigate('/copilot', { replace: true });
-                }
+                navigate(getRedirectPathForUser(u || userData), { replace: true });
               }}
               onBackToHome={() => navigate('/')}
             />
@@ -180,15 +189,16 @@ function AppRoutes({ user, checkAuth }: { user: any; checkAuth: () => Promise<an
       {/* 7. Organization Admin Routes (/org) */}
       <Route path="/org" element={<OrgRouteHandler user={user} checkAuth={checkAuth} />}>
         <Route index element={<OrgAdmin />} />
-        <Route path="knowledge" element={<OrgAdmin />} />
+        <Route path="knowledge" element={<DocumentBase />} />
         <Route path="users" element={<OrgAdmin />} />
         <Route path="ai-config" element={<OrgAdmin />} />
       </Route>
 
-      {/* 8. Platform Admin Routes (/admin/platform) */}
+      {/* 8. Platform Admin Routes (/admin/platform) & legacy /admin */}
+      <Route path="/admin" element={<Navigate to="/admin/platform" replace />} />
       <Route path="/admin/platform" element={<PlatformAdminRouteHandler user={user} checkAuth={checkAuth} />}>
         <Route index element={<PlatformAdmin />} />
-        <Route path="orgs" element={<PlatformAdmin />} />
+        <Route path="orgs" element={<PlatformOrgs />} />
         <Route path="settings" element={<PlatformAdmin />} />
       </Route>
 

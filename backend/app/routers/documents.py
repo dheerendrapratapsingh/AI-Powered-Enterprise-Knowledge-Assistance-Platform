@@ -71,6 +71,7 @@ def upload_document(
         access_level=access_level,
         file_path=file_path,
         uploaded_by=current_user.id,
+        organization_id=current_user.organization_id,
         status="PENDING",
         is_active=True
     )
@@ -259,7 +260,10 @@ def get_document_chunks(
 
 @router.get("")
 def list_documents(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
-    return db.query(Document).filter(Document.is_active == True).order_by(Document.created_at.desc()).all()
+    query = db.query(Document).filter(Document.is_active == True)
+    if current_user.role == "ORG_ADMIN" and current_user.organization_id:
+        query = query.filter(Document.organization_id == current_user.organization_id)
+    return query.order_by(Document.created_at.desc()).all()
 
 
 @router.delete("/{document_id}")

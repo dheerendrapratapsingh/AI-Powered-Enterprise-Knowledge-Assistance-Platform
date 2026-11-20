@@ -1,4 +1,6 @@
-export const API_URL = "http://127.0.0.1:8000/api";
+export const API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : (import.meta.env.PROD ? "/api" : "http://127.0.0.1:8000/api");
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem("token");

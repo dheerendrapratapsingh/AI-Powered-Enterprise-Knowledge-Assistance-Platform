@@ -82,43 +82,55 @@ OUT_OF_SCOPE_PATTERNS = [
 ]
 
 
-def get_fast_conversational_response(query: str) -> str | None:
+def get_clean_org_names(org_name: str):
+    if not org_name:
+        return "VIT-AP University", "VIT-AP AI Copilot", "VIT-AP"
+    lower = org_name.lower()
+    if "srm" in lower:
+        return "SRM University AP", "SRM AP AI Copilot", "SRM AP"
+    if "vit" in lower:
+        return "VIT-AP University", "VIT-AP AI Copilot", "VIT-AP"
+    short = org_name.split()[0]
+    return org_name, f"{short} AI Copilot", short
+
+def get_fast_conversational_response(query: str, org_name: str = "VIT-AP University") -> str | None:
     """
     Returns an instant, high-quality response for common greetings, identity,
-    and courtesy queries when Gemini API is offline or running local CPU inference.
+    and courtesy queries customized to the user's institution.
     """
+    full_org, copilot_name, short_org = get_clean_org_names(org_name)
     clean = query.strip().lower()
     clean = re.sub(r"^[^\w]+|[^\w]+$", "", clean)
 
     # Simple greetings
-    if re.search(r"^(hi|hello|hey|hiya|howdy|namaste|greetings)(\s+(there|copilot|assistant|bot|vitap))?$", clean):
-        return "Hello! Welcome to VIT-AP AI Copilot. How can I help you today? You can ask me about academic regulations, degree curricula, hostel rules, or university staff."
+    if re.search(r"^(hi|hello|hey|hiya|howdy|namaste|greetings)(\s+(there|copilot|assistant|bot|vitap|srm|srmap))?$", clean):
+        return f"Hello! Welcome to {copilot_name}. How can I help you today? You can ask me about academic regulations, degree curricula, hostel rules, or university staff."
     if re.search(r"^good\s+(morning|day)", clean):
-        return "Good morning! Welcome to VIT-AP AI Copilot. How can I assist you with your academics or campus life today?"
+        return f"Good morning! Welcome to {copilot_name}. How can I assist you with your academics or campus life today?"
     if re.search(r"^good\s+afternoon", clean):
-        return "Good afternoon! Welcome to VIT-AP AI Copilot. How can I help you today?"
+        return f"Good afternoon! Welcome to {copilot_name}. How can I help you today?"
     if re.search(r"^good\s+evening", clean):
-        return "Good evening! Welcome to VIT-AP AI Copilot. Feel free to ask any questions about VIT-AP regulations, courses, or hostels."
+        return f"Good evening! Welcome to {copilot_name}. Feel free to ask any questions about {short_org} regulations, courses, or hostels."
 
     # Identity & capabilities
     if re.search(r"^(who\s+are\s+you|what\s+are\s+you)$", clean):
-        return "I am the **VIT-AP AI Copilot**, an intelligent campus assistant designed to help students, faculty, and administration with official university knowledge, academic bylaws, hostel regulations, and campus directories."
+        return f"I am the **{copilot_name}**, an intelligent campus assistant designed to help students, faculty, and administration with official {full_org} knowledge, academic bylaws, hostel regulations, and campus directories."
     if re.search(r"^(what\s+can\s+you\s+do|what\s+are\s+your\s+capabilities|how\s+can\s+you\s+help|what\s+do\s+you\s+do)$", clean):
         return (
-            "I can help you explore official VIT-AP university information, including:\n\n"
-            "- **Academic Regulations & Curricula**: B.Tech CSE Core & CSBS course requirements, credit limits, and grading rules.\n"
-            "- **Hostel Guidelines**: Sunday outing rules, general leave applications, and curfew timings.\n"
-            "- **Staff Directory**: Locating faculty cabins, employee numbers, and departmental designations.\n"
-            "- **Email Drafting**: Creating formal email requests addressed to Course Coordinators and Deans."
+            f"I can help you explore official {short_org} university information, including:\n\n"
+            f"- **Academic Regulations & Curricula**: Degree requirements, course credit limits, and grading policies.\n"
+            f"- **Hostel Guidelines**: Campus outing timings, leave policies, and curfew rules.\n"
+            f"- **Campus Directory**: Locating faculty cabins, employee numbers, and departmental designations.\n"
+            f"- **Official Correspondence**: Formatting formal inquiries addressed to Department Heads and Deans."
         )
 
     # Thanks & courtesy
     if re.search(r"^(thank\s+you|thanks|thanks\s+a\s+lot|thank\s+you\s+so\s+much|thx)$", clean):
-        return "You're very welcome! Feel free to ask if you have any more questions about VIT-AP. Have a productive day!"
+        return f"You're very welcome! Feel free to ask if you have any more questions about {short_org}. Have a productive day!"
     if re.search(r"^how\s+are\s+you(\s+doing)?$", clean):
-        return "I'm doing well and ready to assist you! How can I help you with your VIT-AP academic or hostel questions today?"
+        return f"I'm doing well and ready to assist you! How can I help you with your {short_org} academic or campus questions today?"
     if re.search(r"^(bye|goodbye|see\s+you|have\s+a\s+good\s+day)$", clean):
-        return "Goodbye! Have a great and productive day ahead at VIT-AP!"
+        return f"Goodbye! Have a great and productive day ahead at {short_org}!"
 
     return None
 
@@ -185,3 +197,23 @@ def classify_query_intent(query: str) -> QueryIntent:
 
     # 7. Default to UNIVERSITY_KNOWLEDGE so FAISS checks relevance against documents
     return QueryIntent.UNIVERSITY_KNOWLEDGE
+
+
+def is_draft_email_intent(question: str) -> bool:
+    q_lower = question.lower().strip()
+    
+    # Exclude questions, complaints, or negative expressions about emails
+    negative_patterns = [
+        "why", "what i want", "don't want", "dont want", "did not ask", "didn't ask", 
+        "no email", "stop writing", "not an email", "why did you", "what did you", "who told you"
+    ]
+    if any(neg in q_lower for neg in negative_patterns):
+        return False
+        
+    imperative_patterns = [
+        r"\b(draft|compose|write|generate|prepare|send)\s+(a\s+|an\s+)?(formal\s+)?(email|mail)\b",
+        r"\b(email|mail)\s+(template|draft)\b",
+        r"^(draft|compose|write)\s+(an?\s+)?email"
+    ]
+    return any(re.search(pat, q_lower) for pat in imperative_patterns)
+

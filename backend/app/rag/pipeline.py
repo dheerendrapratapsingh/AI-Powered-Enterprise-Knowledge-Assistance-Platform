@@ -1,30 +1,10 @@
 from app.rag.retriever import retrieve_relevant_chunks
 from app.rag.prompt_builder import build_prompt
 from app.rag.llm_client import generate_response
-from app.rag.intent import classify_query_intent, QueryIntent
+from app.rag.intent import classify_query_intent, QueryIntent, is_draft_email_intent
 from app.models.user import User
 
 FALLBACK_MESSAGE = "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
-
-import re
-
-def is_draft_email_intent(question: str) -> bool:
-    q_lower = question.lower().strip()
-    
-    # Exclude questions, complaints, or negative expressions about emails
-    negative_patterns = [
-        "why", "what i want", "don't want", "dont want", "did not ask", "didn't ask", 
-        "no email", "stop writing", "not an email", "why did you", "what did you", "who told you"
-    ]
-    if any(neg in q_lower for neg in negative_patterns):
-        return False
-        
-    imperative_patterns = [
-        r"\b(draft|compose|write|generate|prepare|send)\s+(a\s+|an\s+)?(formal\s+)?(email|mail)\b",
-        r"\b(email|mail)\s+(template|draft)\b",
-        r"^(draft|compose|write)\s+(an?\s+)?email"
-    ]
-    return any(re.search(pat, q_lower) for pat in imperative_patterns)
 
 def answer_question(question: str, user: User, conversation_history: list = None) -> dict:
     """
@@ -33,10 +13,11 @@ def answer_question(question: str, user: User, conversation_history: list = None
     University inquiries are strictly grounded in retrieved documents.
     """
     intent = classify_query_intent(question)
+    org_name = user.organization.name if (user and user.organization) else "VIT-AP University"
 
     # 1. Path A: Greetings & General Conversation (Bypass FAISS)
     if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
-        prompt = build_prompt(question, [], conversation_history=conversation_history, intent=intent)
+        prompt = build_prompt(question, [], conversation_history=conversation_history, intent=intent, org_name=org_name)
         response_data = generate_response(prompt)
         response_data["retrieved_chunks"] = []
         response_data["sources"] = []
@@ -46,7 +27,7 @@ def answer_question(question: str, user: User, conversation_history: list = None
 
     # 2. Path B: Out of Scope Non-University Inquiries (Bypass FAISS)
     if intent == QueryIntent.OUT_OF_SCOPE:
-        prompt = build_prompt(question, [], conversation_history=conversation_history, intent=intent)
+        prompt = build_prompt(question, [], conversation_history=conversation_history, intent=intent, org_name=org_name)
         response_data = generate_response(prompt)
         response_data["retrieved_chunks"] = []
         response_data["sources"] = []
@@ -55,7 +36,7 @@ def answer_question(question: str, user: User, conversation_history: list = None
         return response_data
 
     # 3. Path C: University Knowledge, Document Search & Staff Directory
-    chunks = retrieve_relevant_chunks(question)
+    chunks = retrieve_relevant_chunks(question, organization_id=user.organization_id if user else None)
     
     allowed_chunks = []
     user_role = (user.role or "STUDENT").upper()
@@ -68,8 +49,9 @@ def answer_question(question: str, user: User, conversation_history: list = None
     # Handle low confidence or no results
     if not allowed_chunks:
         if not is_draft_email_intent(question):
+            fallback = f"The requested information is not available in the official {org_name} documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
             return {
-                "answer": FALLBACK_MESSAGE,
+                "answer": fallback,
                 "response_type": "insufficient_information",
                 "sources": [],
                 "retrieved_chunks": [],
@@ -77,7 +59,7 @@ def answer_question(question: str, user: User, conversation_history: list = None
             }
         
     # Build Context & Grounded RAG Prompt
-    prompt = build_prompt(question, allowed_chunks, conversation_history=conversation_history, intent=intent)
+    prompt = build_prompt(question, allowed_chunks, conversation_history=conversation_history, intent=intent, org_name=org_name)
     
     # Generate Answer
     response_data = generate_response(prompt)

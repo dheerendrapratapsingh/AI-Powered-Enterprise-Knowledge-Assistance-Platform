@@ -16,6 +16,7 @@ export interface OrganizationItem {
   status: string;
   user_count: number;
   document_count: number;
+  admin_emails?: string[];
   created_at?: string;
 }
 
@@ -34,10 +35,43 @@ export async function getOrganizations(): Promise<OrganizationItem[]> {
   return fetchWithAuth("/platform/organizations");
 }
 
-export async function createOrganization(payload: { name: string; domain?: string }): Promise<OrganizationItem> {
+export async function createOrganization(payload: { name: string; domain?: string; admin_emails?: string[] }): Promise<OrganizationItem> {
   return fetchWithAuth("/platform/organizations", {
     method: "POST",
     body: JSON.stringify(payload)
+  });
+}
+
+export async function updateOrganization(
+  orgId: string,
+  payload: { 
+    name?: string; 
+    domain?: string; 
+    status?: string; 
+    admin_emails?: string[];
+    admin_passwords?: Record<string, string>;
+  }
+): Promise<OrganizationItem> {
+  return fetchWithAuth(`/platform/organizations/${orgId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function setOrgAdminPassword(
+  orgId: string,
+  email: string,
+  password: string
+): Promise<{ detail: string }> {
+  return fetchWithAuth(`/platform/organizations/${orgId}/set-password`, {
+    method: "POST",
+    body: JSON.stringify({ email, password })
+  });
+}
+
+export async function deleteOrganization(orgId: string): Promise<{ detail: string }> {
+  return fetchWithAuth(`/platform/organizations/${orgId}`, {
+    method: "DELETE"
   });
 }
 

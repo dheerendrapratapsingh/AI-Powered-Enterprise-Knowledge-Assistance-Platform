@@ -199,7 +199,7 @@ export default function Login({ onLogin, onBackToHome }: LoginProps) {
               className="form-input-auth"
               value={email} 
               onChange={e => setEmail(e.target.value)} 
-              placeholder={selectedRole === 'STUDENT' ? 'name.reg@vitapstudent.ac.in' : 'admin@vitap.ac.in'}
+              placeholder={selectedRole === 'STUDENT' ? 'student@vitap.ac.in' : selectedRole === 'ORG_ADMIN' ? 'org@vitap.ac.in' : 'admin@vitap.ac.in'}
               required 
             />
           </div>
@@ -247,28 +247,44 @@ export default function Login({ onLogin, onBackToHome }: LoginProps) {
 
         {/* Demo Credentials Quick-Select */}
         <div className="credentials-hint-auth">
-          <div className="credentials-label">Instant Demo Evaluation</div>
+          <div className="credentials-label">Instant Demo Evaluation (Multi-Tenant)</div>
           <div className="demo-accounts-grid-auth">
             <button 
               type="button" 
               className="demo-pill-auth"
               onClick={() => fillDemoAccount('STUDENT', 'student@vitap.ac.in', 'student123')}
             >
-              🎓 Student
+              🎓 VIT Student
+            </button>
+            <button 
+              type="button" 
+              className="demo-pill-auth"
+              onClick={() => fillDemoAccount('STUDENT', 'student@srm.ac.in', 'student123')}
+              style={{ borderColor: 'rgba(6, 182, 212, 0.4)', color: '#22D3EE' }}
+            >
+              🎓 SRM Student
             </button>
             <button 
               type="button" 
               className="demo-pill-auth"
               onClick={() => fillDemoAccount('ORG_ADMIN', 'org@vitap.ac.in', 'org123')}
             >
-              🏫 Org Admin
+              🏫 VIT Org Admin
+            </button>
+            <button 
+              type="button" 
+              className="demo-pill-auth"
+              onClick={() => fillDemoAccount('ORG_ADMIN', 'org@srm.ac.in', 'org123')}
+              style={{ borderColor: 'rgba(6, 182, 212, 0.4)', color: '#22D3EE' }}
+            >
+              🏫 SRM Org Admin
             </button>
             <button 
               type="button" 
               className="demo-pill-auth"
               onClick={() => fillDemoAccount('ADMIN', 'admin@vitap.ac.in', 'admin123')}
             >
-              ⚙️ Platform
+              ⚙️ Platform Admin
             </button>
           </div>
         </div>

@@ -1,12 +1,15 @@
 from app.rag.embedder import generate_embedding
 from app.rag.index_manager import IndexManager
 from app.config import settings
+from app.database.connection import SessionLocal
+from app.models.document import Document
+from app.models.organization import Organization
 import numpy as np
 import faiss
 
 index_manager = IndexManager()
 
-def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
+def retrieve_relevant_chunks(question: str, top_k: int = None, organization_id: str = None) -> list:
     index_manager.ensure_fresh()
     if top_k is None:
         top_k = settings.TOP_K
@@ -16,10 +19,28 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
 
     q_lower = question.lower()
 
+    # Determine tenant organization context if present
+    org_name = "VIT-AP University"
+    org_doc_ids = None
+    if organization_id:
+        db = SessionLocal()
+        try:
+            org = db.query(Organization).filter(Organization.id == organization_id).first()
+            if org:
+                org_name = org.name
+            active_docs = db.query(Document.id).filter(
+                Document.organization_id == organization_id,
+                Document.is_active == True
+            ).all()
+            org_doc_ids = {d[0] for d in active_docs}
+        finally:
+            db.close()
+
     # Contextualize ambiguous location/campus queries lacking university mentions
     search_q = question
-    if any(k in q_lower for k in ["address", "location", "where is it", "reach it", "situated", "pincode"]) and not any(k in q_lower for k in ["vit", "vit-ap", "vitap", "university"]):
-        search_q = f"VIT-AP University {question}"
+    if any(k in q_lower for k in ["address", "location", "where is it", "reach it", "situated", "pincode"]):
+        if not any(k in q_lower for k in ["vit", "vit-ap", "vitap", "srm", "university"]):
+            search_q = f"{org_name} {question}"
 
     query_embedding = generate_embedding(search_q)
     query_np = np.array([query_embedding]).astype('float32')
@@ -37,6 +58,16 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         if not chunk_data:
             continue
 
+        # Strict Multi-Tenant Isolation
+        chunk_doc_id = chunk_data.get("metadata", {}).get("document_id") or chunk_data.get("document_id")
+        chunk_org_id = chunk_data.get("metadata", {}).get("organization_id")
+
+        if organization_id is not None:
+            if chunk_org_id and chunk_org_id != organization_id:
+                continue
+            if org_doc_ids is not None and chunk_doc_id not in org_doc_ids:
+                continue
+
         item = chunk_data.copy()
         item["score"] = float(dist)
         candidates.append(item)
@@ -52,6 +83,21 @@ def retrieve_relevant_chunks(question: str, top_k: int = None) -> list:
         ]
         if fac_candidates:
             candidates = fac_candidates
+
+        # Exact faculty name matching & noise reduction for SLMs (prevents blending multiple faculty names)
+        query_words = [w for w in re.findall(r'\b[a-zA-Z]{3,}\b', q_lower) if w not in {
+            'tell', 'about', 'what', 'where', 'who', 'faculty', 'professor', 'cabin', 
+            'number', 'give', 'details', 'info', 'information', 'university', 'please'
+        }]
+        if query_words:
+            def name_score(chunk):
+                t = chunk.get("text", "").lower()
+                return sum(1 for w in query_words if w in t)
+            
+            matching = [c for c in candidates if name_score(c) > 0]
+            if matching:
+                matching.sort(key=name_score, reverse=True)
+                candidates = matching[:2]
 
     # 2. Specific Degree program disambiguation
     elif "b.com" in q_lower or "commerce" in q_lower:

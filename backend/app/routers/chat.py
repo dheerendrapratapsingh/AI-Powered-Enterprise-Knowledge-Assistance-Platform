@@ -137,10 +137,16 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
     user_role = current_user.role
     question = request.question
     conversation_id = request.conversation_id
+    default_org_name = current_user.organization.name if (current_user and current_user.organization) else "VIT-AP University"
 
     def event_stream():
         db = SessionLocal()
         try:
+            # Resolve user & organization cleanly in this session
+            user_obj = db.query(User).filter(User.id == user_id).first()
+            resolved_org_name = user_obj.organization.name if (user_obj and user_obj.organization) else default_org_name
+            user_org_id = user_obj.organization_id if user_obj else current_user.organization_id
+
             # 1. Manage Conversation (Auto-heal if conversation_id is invalid or missing)
             conv = None
             if conversation_id:
@@ -162,7 +168,7 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
             db.commit()
 
             # 1. Check Semantic Cache
-            cached = get_cached_response(question, organization_id=current_user.organization_id)
+            cached = get_cached_response(question, organization_id=user_org_id)
             if cached:
                 ai_message_id = str(uuid.uuid4())
                 metadata_packet = {
@@ -219,8 +225,8 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                 }
                 yield f"data: {json.dumps(metadata_packet)}\n\n"
 
-                fast_resp = get_fast_conversational_response(question)
-                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
+                fast_resp = get_fast_conversational_response(question, org_name=resolved_org_name)
+                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent, org_name=resolved_org_name)
                 collected_tokens = []
                 for token in stream_response_tokens(prompt, fast_text=fast_resp):
                     collected_tokens.append(token)
@@ -243,7 +249,7 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                         full_answer,
                         [],
                         response_type="greeting",
-                        organization_id=current_user.organization_id
+                        organization_id=user_org_id
                     )
 
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
@@ -260,8 +266,8 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                 }
                 yield f"data: {json.dumps(metadata_packet)}\n\n"
 
-                fast_resp = get_fast_conversational_response(question)
-                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
+                fast_resp = get_fast_conversational_response(question, org_name=resolved_org_name)
+                prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent, org_name=resolved_org_name)
                 collected_tokens = []
                 for token in stream_response_tokens(prompt, fast_text=fast_resp):
                     collected_tokens.append(token)
@@ -282,7 +288,7 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                 return
 
             # Path C: University Knowledge, Document Search & Staff Directory
-            chunks = retrieve_relevant_chunks(question)
+            chunks = retrieve_relevant_chunks(question, organization_id=user_org_id)
             allowed_chunks = []
             for c in chunks:
                 access = str(c.get("metadata", {}).get("access_level", "student")).lower()
@@ -321,25 +327,25 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
 
             if not allowed_chunks:
                 if not is_draft_email_intent(question):
-                    fallback_msg = FALLBACK_MESSAGE
+                    fallback_msg = f"The requested information is not available in the official {resolved_org_name} documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
                     yield f"data: {json.dumps({'type': 'token', 'token': fallback_msg})}\n\n"
                     full_answer = fallback_msg
                 else:
-                    prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent)
+                    prompt = build_streaming_prompt(question, [], conversation_history=history, intent=intent, org_name=resolved_org_name)
                     collected_tokens = []
                     for token in stream_response_tokens(prompt):
                         collected_tokens.append(token)
                         yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
                     full_answer = "".join(collected_tokens)
             else:
-                prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history, intent=intent)
+                prompt = build_streaming_prompt(question, allowed_chunks, conversation_history=history, intent=intent, org_name=resolved_org_name)
                 
                 # Resilient fallback if neither Gemini nor Ollama is configured
                 fast_fallback = None
                 if not check_gemini_configured() and not check_ollama_health():
                     excerpts = []
                     for idx, c in enumerate(allowed_chunks[:2], 1):
-                        name = c.get("metadata", {}).get("document_name", "Official University Document")
+                        name = c.get("metadata", {}).get("document_name", f"Official {resolved_org_name} Document")
                         text_snip = c.get("text", "").strip()
                         excerpts.append(f"**[{idx}] From {name}:**\n{text_snip}")
                     
@@ -352,10 +358,23 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                     )
 
                 collected_tokens = []
+                is_email = is_draft_email_intent(question)
+                if not is_email and not fast_fallback:
+                    header = f"**{resolved_org_name.split()[0]} Official Information:**\n\n"
+                    collected_tokens.append(header)
+                    yield f"data: {json.dumps({'type': 'token', 'token': header})}\n\n"
+
                 for token in stream_response_tokens(prompt, fast_text=fast_fallback):
                     collected_tokens.append(token)
                     yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
                 full_answer = "".join(collected_tokens)
+
+                # Defensive cleanup: Strip stray email artifacts if the query was purely informational
+                if not is_email:
+                    if "Subject:" in full_answer:
+                        full_answer = re.sub(r"Subject:.*?\n+", "", full_answer, flags=re.IGNORECASE)
+                    if "Dear Student," in full_answer:
+                        full_answer = re.sub(r"Dear\s+(Student|User)[^\n]*\n+", "", full_answer, flags=re.IGNORECASE)
 
             # 4. Save AI message to database
             ai_msg = Message(
@@ -383,7 +402,7 @@ def chat_stream_endpoint(request: ChatRequest, current_user: User = Depends(get_
                     full_answer,
                     sources_list,
                     response_type="answer",
-                    organization_id=current_user.organization_id
+                    organization_id=user_org_id
                 )
 
             yield f"data: {json.dumps({'type': 'done'})}\n\n"

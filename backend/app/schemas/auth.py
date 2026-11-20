@@ -17,13 +17,24 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class OrgSummary(BaseModel):
+    id: str
+    name: str
+    slug: str
+    domain: Optional[str] = None
+    status: Optional[str] = "Active"
+
+    class Config:
+        from_attributes = True
+
 class UserOut(BaseModel):
     id: str
     name: str
     email: EmailStr
     role: str
-    student_id: Optional[str]
+    student_id: Optional[str] = None
     organization_id: Optional[str] = None
+    organization: Optional[OrgSummary] = None
 
     class Config:
         from_attributes = True

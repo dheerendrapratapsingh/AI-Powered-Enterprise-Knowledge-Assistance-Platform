@@ -46,27 +46,62 @@ def require_student(current_user: User = Depends(get_current_user)):
         )
     return current_user
 
+from typing import Optional
+
+def find_matching_org(email: str, db: Session) -> Optional[Organization]:
+    if "@" not in email:
+        return None
+    domain = email.split("@")[1].strip().lower()
+    
+    # 1. Exact match on domain
+    matched = db.query(Organization).filter(Organization.domain.isnot(None)).filter(
+        Organization.domain.ilike(domain)
+    ).first()
+    if matched:
+        return matched
+
+    # 2. Suffix or Subdomain match (e.g., student.vitap.ac.in -> vitap.ac.in)
+    all_orgs = db.query(Organization).filter(Organization.domain.isnot(None)).all()
+    for org in all_orgs:
+        org_d = (org.domain or "").strip().lower()
+        if not org_d:
+            continue
+        if domain == org_d or domain.endswith("." + org_d) or org_d.endswith("." + domain):
+            return org
+        # Institutional common domain stems (vit, srm)
+        if "srm" in domain and "srm" in org_d:
+            return org
+        if "vit" in domain and "vit" in org_d:
+            return org
+
+    return None
+
 @router.post("/register", response_model=UserOut)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
+    email_clean = user_in.email.strip().lower()
+    user = db.query(User).filter(User.email == email_clean).first()
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    target_role = (user_in.role or "STUDENT").upper()
     org_id = user_in.organization_id
-    if not org_id and "@" in user_in.email:
-        domain = user_in.email.split("@")[1].lower()
-        matched_org = db.query(Organization).filter(Organization.domain == domain).first()
+    matched_org = find_matching_org(email_clean, db)
+
+    if target_role != "ADMIN":
         if not matched_org:
-            matched_org = db.query(Organization).filter(Organization.slug == "vitap").first()
-        if matched_org:
-            org_id = matched_org.id
+            domain_part = email_clean.split("@")[1] if "@" in email_clean else email_clean
+            raise HTTPException(
+                status_code=400,
+                detail=f"Registration restricted: Email domain '@{domain_part}' does not match any provisioned organization. Please use your official university email."
+            )
+        org_id = matched_org.id
 
     hashed_password = get_password_hash(user_in.password)
     new_user = User(
         name=user_in.name,
-        email=user_in.email,
+        email=email_clean,
         password_hash=hashed_password,
-        role=user_in.role or "STUDENT",
+        role=target_role,
         student_id=user_in.student_id,
         organization_id=org_id
     )
@@ -77,15 +112,33 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
+    email_clean = user_in.email.strip().lower()
+    user = db.query(User).filter(User.email == email_clean).first()
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    access_token = create_access_token(data={"sub": user.email, "role": user.role})
+
+    # Sync / Validate Organization Domain Mapping for Students & Org Admins
+    if user.role != "ADMIN":
+        matched_org = find_matching_org(email_clean, db)
+        if matched_org and user.organization_id != matched_org.id:
+            user.organization_id = matched_org.id
+            db.commit()
+
+        if user.organization and user.organization.status == "Inactive":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access suspended: {user.organization.name} platform is currently inactive."
+            )
+
+    access_token = create_access_token(data={
+        "sub": user.email, 
+        "role": user.role, 
+        "org_id": user.organization_id
+    })
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserOut)

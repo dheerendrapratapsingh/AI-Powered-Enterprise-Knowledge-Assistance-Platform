@@ -7,13 +7,15 @@ import {
   Loader2, 
   CheckCircle2, 
   Globe, 
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import styles from './PlatformAdmin.module.css';
 import { 
   getPlatformStats, 
   getOrganizations, 
   createOrganization, 
+  deleteOrganization,
   type PlatformStats, 
   type OrganizationItem 
 } from '../services/platform';
@@ -22,6 +24,7 @@ export function PlatformAdmin() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [orgs, setOrgs] = useState<OrganizationItem[]>([]);
   const [creating, setCreating] = useState(false);
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDomain, setNewOrgDomain] = useState('');
@@ -61,6 +64,22 @@ export function PlatformAdmin() {
       alert(err.message || "Failed to create organization");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteOrg = async (orgId: string, orgName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete tenant "${orgName}"? This will remove the institutional platform, its indexed documents, and all member associations.`)) {
+      return;
+    }
+
+    setDeletingOrgId(orgId);
+    try {
+      await deleteOrganization(orgId);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || `Failed to delete organization "${orgName}"`);
+    } finally {
+      setDeletingOrgId(null);
     }
   };
 
@@ -135,12 +154,13 @@ export function PlatformAdmin() {
                 <th>Documents</th>
                 <th>Active Users</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {orgs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No organizations provisioned yet.
                   </td>
                 </tr>
@@ -182,6 +202,23 @@ export function PlatformAdmin() {
                       <span className={styles.statusActive}>
                         <CheckCircle2 size={12} /> {org.status || 'Active'}
                       </span>
+                    </td>
+                    <td>
+                      <div className={styles.actionBtns}>
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => handleDeleteOrg(org.id, org.name)}
+                          disabled={deletingOrgId === org.id}
+                          title={`Delete ${org.name} Tenant`}
+                        >
+                          {deletingOrgId === org.id ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                          <span>{deletingOrgId === org.id ? "Deleting..." : "Delete"}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

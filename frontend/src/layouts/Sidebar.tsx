@@ -45,18 +45,21 @@ export function Sidebar({ role }: SidebarProps) {
     return 'Student Member';
   };
 
+  const orgName = user?.organization?.name || 'VIT-AP University';
+  const copilotName = orgName.toLowerCase().includes('srm') ? 'SRM Copilot' : `${orgName.split(' ')[0]} Copilot`;
+
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
       {/* Sidebar Header */}
       <div className={styles.header}>
-        <div className={styles.brand} title="VIT-AP Copilot">
+        <div className={styles.brand} title={copilotName}>
           <div className={styles.logoIcon}>
             <Bot size={20} color="#FFFFFF" />
           </div>
           {!collapsed && (
             <div className={styles.brandInfo}>
-              <span className={styles.brandTitle}>VIT-AP Copilot</span>
-              <span className={styles.brandTenant}>VIT-AP University</span>
+              <span className={styles.brandTitle}>{copilotName}</span>
+              <span className={styles.brandTenant}>{orgName}</span>
             </div>
           )}
         </div>
@@ -85,11 +88,11 @@ export function Sidebar({ role }: SidebarProps) {
         {role === 'org' && (
           <>
             {!collapsed && <div className={styles.navSection}>Organization Portal</div>}
-            <NavLink to="/org" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Knowledge Overview">
+            <NavLink to="/org" end className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Knowledge Overview">
               <LayoutDashboard size={18} className={styles.linkIcon} />
               {!collapsed && <span>Org Dashboard</span>}
             </NavLink>
-            <NavLink to="/org/knowledge" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Document Knowledge Base">
+            <NavLink to="/org/knowledge" end className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Document Knowledge Base">
               <Database size={18} className={styles.linkIcon} />
               {!collapsed && <span>Document Base</span>}
             </NavLink>
@@ -103,11 +106,11 @@ export function Sidebar({ role }: SidebarProps) {
         {role === 'platform' && (
           <>
             {!collapsed && <div className={styles.navSection}>Platform Ecosystem</div>}
-            <NavLink to="/admin/platform" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Platform Dashboard">
+            <NavLink to="/admin/platform" end className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Platform Dashboard">
               <LayoutDashboard size={18} className={styles.linkIcon} />
               {!collapsed && <span>Global Overview</span>}
             </NavLink>
-            <NavLink to="/admin/platform/orgs" className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Tenant Organizations">
+            <NavLink to="/admin/platform/orgs" end className={({isActive}) => isActive ? styles.activeLink : styles.link} title="Tenant Organizations">
               <Building2 size={18} className={styles.linkIcon} />
               {!collapsed && <span>Tenants / Orgs</span>}
             </NavLink>

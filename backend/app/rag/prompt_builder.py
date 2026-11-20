@@ -1,4 +1,4 @@
-from app.rag.intent import QueryIntent
+from app.rag.intent import QueryIntent, get_clean_org_names, is_draft_email_intent
 
 def format_history_section(conversation_history: list = None) -> str:
     if not conversation_history:
@@ -18,22 +18,23 @@ def format_history_section(conversation_history: list = None) -> str:
     return ""
 
 
-def build_conversational_prompt(question: str, conversation_history: list = None, intent: QueryIntent = QueryIntent.GREETING) -> str:
+def build_conversational_prompt(question: str, conversation_history: list = None, intent: QueryIntent = QueryIntent.GREETING, org_name: str = "VIT-AP University") -> str:
     """
     Builds a natural conversational prompt for greetings and general inquiries
     without document grounding restrictions.
     """
     history_section = format_history_section(conversation_history)
+    full_org, copilot_name, short_org = get_clean_org_names(org_name)
 
-    prompt = f"""You are the VIT-AP AI Copilot, a friendly, professional, and intelligent campus assistant for VIT-AP University.
+    prompt = f"""You are the {copilot_name}, a friendly, professional, and intelligent campus assistant for {full_org}.
 
 Guidelines:
 1. Warmth & Tone: Be welcoming, articulate, courteous, and concise. Format your reply in clean, readable Markdown.
 2. Purpose & Identity:
-   - When greeted (e.g., 'Hello', 'Hi', 'Good morning'), greet the user warmly and invite them to ask about VIT-AP academic regulations, degree syllabi, hostel rules, or faculty directories.
-   - When asked about your identity or capabilities (e.g., 'Who are you?', 'What can you do?'), introduce yourself as the VIT-AP AI Copilot and summarize your capabilities:
-     • Academic Regulations & Syllabi: B.Tech CSE Core, CSBS, electives, credit structures, and grading policies.
-     • Hostel Regulations: Sunday outing timings, General Leave procedures, night attendance, and late return rules.
+   - When greeted (e.g., 'Hello', 'Hi', 'Good morning'), greet the user warmly and invite them to ask about {short_org} academic regulations, degree syllabi, hostel rules, or faculty directories.
+   - When asked about your identity or capabilities (e.g., 'Who are you?', 'What can you do?'), introduce yourself as the {copilot_name} and summarize your capabilities:
+     • Academic Regulations & Syllabi: Course requirements, credit structures, and grading policies.
+     • Hostel Regulations: Campus outing timings, leave procedures, night attendance, and late return rules.
      • Campus Directory: Faculty cabin locations, employee numbers, and department designations.
      • Official Email Drafting: Formal email templates addressed to School Deans, Faculty, and Course Coordinators.
    - When thanked (e.g., 'Thank you', 'Thanks'), reply with polite academic courtesy.
@@ -46,43 +47,61 @@ Guidelines:
 {history_section}
 User: {question}
 
-VIT-AP Copilot:"""
+{copilot_name}:"""
     return prompt
 
 
-def build_out_of_scope_prompt(question: str, conversation_history: list = None) -> str:
+def build_out_of_scope_prompt(question: str, conversation_history: list = None, org_name: str = "VIT-AP University") -> str:
     """
     Builds a polite redirection prompt for non-university inquiries.
     """
     history_section = format_history_section(conversation_history)
+    full_org, copilot_name, short_org = get_clean_org_names(org_name)
 
-    prompt = f"""You are the VIT-AP AI Copilot.
-The user asked a query that is outside the scope of VIT-AP University affairs, regulations, or campus facilities.
+    prompt = f"""You are the {copilot_name}.
+The user asked a query that is outside the scope of {full_org} affairs, regulations, or campus facilities.
 
 Guidelines:
-1. Politely and clearly inform the user that you are specialized specifically in official VIT-AP university knowledge (academic regulations, degree curricula, hostel rules, and staff directories).
+1. Politely and clearly inform the user that you are specialized specifically in official {short_org} university knowledge (academic regulations, degree curricula, hostel rules, and staff directories).
 2. Do not attempt to answer off-topic queries (such as coding solutions, world trivia, entertainment, or politics).
 3. Suggest 3 helpful questions the student can ask you instead, for example:
-   - "What are the Programme Core courses for B.Tech CSE Core?"
-   - "What are the Sunday hostel outing return timings?"
-   - "Where is Dr. Hari Seetha's cabin and what is her designation?"
+   - "What are the Programme Core courses for my degree?"
+   - "What are the campus hostel outing return timings?"
+   - "Where is the department dean's office located?"
 4. Keep your tone polite, respectful, and concise in Markdown.
 
 {history_section}
 User Query: {question}
 
-VIT-AP Copilot:"""
+{copilot_name}:"""
     return prompt
 
 
-def build_streaming_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE) -> str:
+def build_streaming_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE, org_name: str = "VIT-AP University") -> str:
     """
     Builds the appropriate prompt for SSE streaming based on query intent.
     """
+    full_org, copilot_name, short_org = get_clean_org_names(org_name)
+
     if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
-        return build_conversational_prompt(question, conversation_history, intent)
+        return build_conversational_prompt(question, conversation_history, intent, org_name=org_name)
     elif intent == QueryIntent.OUT_OF_SCOPE:
-        return build_out_of_scope_prompt(question, conversation_history)
+        return build_out_of_scope_prompt(question, conversation_history, org_name=org_name)
+
+    is_email = is_draft_email_intent(question)
+    if is_email:
+        format_rule = (
+            "6. Formal Email Generation:\n"
+            "   - Format the response as a formal university email with Subject, To, and Body."
+        )
+        assistant_starter = "Subject:"
+    else:
+        format_rule = (
+            "6. Direct Factual Output:\n"
+            "   - Output a direct, concise explanation in clean Markdown bullet points.\n"
+            "   - Do NOT format as a letter or email. Do NOT include salutations, 'Dear Student', or sign-offs."
+        )
+        assistant_starter = f"Here is the verified {short_org} information:"
 
     # University Knowledge / Staff Directory / Document Search
     context_text = "\n\n".join([
@@ -92,16 +111,20 @@ def build_streaming_prompt(question: str, context_chunks: list, conversation_his
     
     history_section = format_history_section(conversation_history)
 
-    prompt = f"""You are the VIT-AP Student AI Copilot.
-Answer the student's question based strictly on the provided VIT-AP policy context below.
+    prompt = f"""You are the {short_org} Student AI Copilot.
+Answer the student's question based strictly on the provided {short_org} policy context below.
 
 Rules:
 1. Strict Program & Category Precision:
-   - Pay close attention to the specific degree/branch asked (e.g., 'B.Tech CSE Core', 'B.Tech CSBS', 'B.Com', 'BBA', 'Dual Degree in Arts').
+   - Pay close attention to the specific degree/branch asked.
    - Only report courses belonging to the requested degree and category (Programme Core, University Core, or Electives).
-   - If asked for courses with a specific code prefix (e.g., 'CSE', 'MGT', 'MAT', 'HUM', 'LAW'), only list courses matching that prefix.
 2. Faculty & Directory Inquiries:
-   - If asked about a faculty member (e.g., cabin number, employee ID, title, or department), provide the exact information directly and concisely from the context.
+   - If asked about a faculty member (e.g., cabin number, employee ID, title, or department), provide the exact information directly and concisely from the context:
+     • **Name**: [Exact Name from Context]
+     • **Title / Designation**: [Exact Employee Title from Context]
+     • **Department**: [Exact Department from Context]
+     • **Cabin Number**: [Exact Cabin Number from Context]
+   - Strictly do not invent, swap, or blend names or institutions.
 3. Code-Title Accuracy:
    - Strictly report exact course codes with their printed titles and credits. Never invent or swap codes.
 4. Ground Truth Authority:
@@ -109,21 +132,9 @@ Rules:
 5. Strict Anti-Hallucination & Fallback:
    - Never invent, guess, or hallucinate policies, course codes, or faculty details.
    - If the requested information is absent or not verified in the provided Context, state explicitly:
-     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
-6. Email Drafting vs Informational Questions (CRITICAL):
-   - ONLY produce an email draft if the student's CURRENT question explicitly commands it (e.g. "Draft an email...", "Write an email to...").
-   - NEVER format responses to informational questions (such as "tell me about its types in electives", "what are the course types", "who is the dean") as an email or letter template.
-   - For all informational inquiries, provide a DIRECT EXPLANATION in clear markdown with headings and bullet points. Never include "Subject:", "Dear Dean", or sign-offs for informational questions.
-   - Do NOT adopt or mimic email templates from prior turns in the conversation history.
-7. Elective Course Types:
-   - When asked about types of electives, explain the university categories clearly:
-     • **Programme Electives (Discipline-Specific Electives)**: Advanced elective courses within the student's primary discipline/school (e.g., specialized CSE domains like AI, Data Science, Cyber Security, Cloud).
-     • **University Electives (Open Electives)**: Interdisciplinary courses offered across schools (Management, Law, Humanities, Sciences, Engineering) allowing students to explore subjects outside their major.
-     • **Basket / Specialization Electives**: Grouped elective course tracks tailored towards formal specializations or minor certifications.
-8. Presentation:
-   - For course lists: list each course on its own bullet line:
-     - **CODE**: Course Title (Credits)
-9. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
+     "The requested information is not available in the official {full_org} documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+{format_rule}
+7. Reply in natural, helpful, formatted Markdown. Do NOT output raw JSON.
 
 Context:
 {context_text}
@@ -131,16 +142,19 @@ Context:
 Student Question:
 {question}
 
-Assistant:"""
+Assistant:
+{assistant_starter}"""
     return prompt
 
 
-def build_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE) -> str:
+def build_prompt(question: str, context_chunks: list, conversation_history: list = None, intent: QueryIntent = QueryIntent.UNIVERSITY_KNOWLEDGE, org_name: str = "VIT-AP University") -> str:
     """
     Builds the prompt for JSON structured response endpoints.
     """
+    full_org, copilot_name, short_org = get_clean_org_names(org_name)
+
     if intent in (QueryIntent.GREETING, QueryIntent.GENERAL_CONVERSATION):
-        return f"""You are the VIT-AP AI Copilot.
+        return f"""You are the {copilot_name}.
 Answer the user's conversational query warmly, helpfully, and concisely in JSON.
 
 User: {question}
@@ -154,9 +168,9 @@ Return ONLY a valid JSON object with the following structure:
 """
 
     if intent == QueryIntent.OUT_OF_SCOPE:
-        return f"""You are the VIT-AP AI Copilot.
+        return f"""You are the {copilot_name}.
 The user asked an out-of-scope query ({question}).
-Politely explain that you specialize in official VIT-AP knowledge and suggest university questions they can ask.
+Politely explain that you specialize in official {full_org} knowledge and suggest university questions they can ask.
 
 Return ONLY a valid JSON object with the following structure:
 {{
@@ -173,35 +187,23 @@ Return ONLY a valid JSON object with the following structure:
     
     history_section = format_history_section(conversation_history)
 
-    prompt = f"""You are the VIT-AP Student AI Copilot.
-Your job is to answer student questions using the provided VIT-AP knowledge context.
+    prompt = f"""You are the {short_org} Student AI Copilot.
+Your job is to answer student questions using the provided {short_org} knowledge context.
 
 Rules:
 1. Strict Program & Category Precision:
-   - Identify the exact degree or branch asked (e.g., 'B.Tech CSE Core', 'B.Tech CSBS', 'B.Com', 'BBA', 'Dual Degree in Arts').
-   - Only use information from the corresponding document. Never mix courses from different branches.
-   - Distinguish clearly between 'Programme Core', 'University Core', and 'Programme Electives'.
-   - If asked for courses with a specific subject code prefix (e.g. 'CSE', 'MGT', 'MAT'), list only courses matching that prefix.
-2. Faculty & Directory Information:
-   - If asked about faculty cabin numbers, employee numbers, titles, or departments, report the exact details from the directory context.
+   - Pay close attention to the specific degree/branch asked.
+   - Only report courses belonging to the requested degree and category (Programme Core, University Core, or Electives).
+2. Faculty & Staff Inquiries:
+   - Provide exact Name, Title, Department, and Cabin Number from the context. Do not invent details.
 3. Ground Truth Authority:
-   - The provided Context takes 100% precedence over previous conversation history. Disregard any contradictory past messages.
-4. Code-Title Accuracy:
-   - Strictly report exact course codes paired with their exact titles and credits as printed in the Context.
-5. Strict Anti-Hallucination & Fallback:
-   - Never invent, guess, or assume any information that is not explicitly confirmed in the Context.
-   - If the requested course, policy, person, or data is NOT found in the provided Context, state clearly:
-     "The requested information is not available in the official university documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
-6. Email Drafting vs Informational Questions (CRITICAL):
-   - ONLY produce an email draft if the student's CURRENT question explicitly commands it (e.g. "Draft an email...", "Write an email to...").
-   - NEVER format responses to informational questions (such as "tell me about its types in electives", "tell me about vit's transport things", "what are the bus routes", "who is the dean") as an email or letter template.
-   - For all informational inquiries, provide a DIRECT EXPLANATION in clear markdown with headings and bullet points. Never include "Subject:", "Dear [Recipient]", or sign-offs for informational questions.
-   - Do NOT adopt or mimic email templates from prior turns in the conversation history.
-   - If drafting an email is explicitly asked, format it with Subject, To, Body, and Sign-off.
-7. Presentation:
-   - For course lists: list each course on its own bullet line:
-     - **CODE**: Course Title (Credits)
-8. You must respond in valid JSON format matching the schema provided.
+   - The provided Context takes 100% precedence over previous conversation history.
+4. Strict Anti-Hallucination & Fallback:
+   - Never invent, guess, or hallucinate policies, course codes, or faculty details.
+   - If the requested information is absent or not verified in the provided Context, state explicitly:
+     "The requested information is not available in the official {full_org} documents provided. Please contact your School Dean or Course Coordinator for official assistance and clarification."
+5. Output:
+   - Direct explanation in clear markdown.
 
 Context:
 {context_text}
@@ -209,17 +211,12 @@ Context:
 Student Question:
 {question}
 
-Return ONLY a valid JSON object with the following structure:
+Return a valid JSON object:
 {{
-  "answer": "Your formatted answer here with clean markdown...",
+  "answer": "Answer grounded in official documents...",
   "response_type": "answer",
-  "sources": [
-    {{
-      "document_id": "...",
-      "document_name": "...",
-      "page": 1
-    }}
-  ]
+  "sources": []
 }}
 """
     return prompt
+

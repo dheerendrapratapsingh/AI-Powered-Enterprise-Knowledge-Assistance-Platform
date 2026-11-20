@@ -18,3 +18,4 @@ markdown
 python-docx
 email-validator
 openpyxl
+trafilatura

@@ -37,9 +37,9 @@ def get_cached_response(query: str, organization_id: Optional[str] = None) -> Op
         # 1. Exact match check
         query_filter = db.query(ResponseCache).filter(ResponseCache.normalized_query == norm_query)
         if organization_id:
-            query_filter = query_filter.filter(
-                (ResponseCache.organization_id == organization_id) | (ResponseCache.organization_id.is_(None))
-            )
+            query_filter = query_filter.filter(ResponseCache.organization_id == organization_id)
+        else:
+            query_filter = query_filter.filter(ResponseCache.organization_id.is_(None))
         exact_entry = query_filter.first()
 
         if exact_entry:
@@ -69,8 +69,12 @@ def get_cached_response(query: str, organization_id: Optional[str] = None) -> Op
         threshold = getattr(settings, "CACHE_SIMILARITY_THRESHOLD", 0.95)
 
         for entry in all_cached:
-            if organization_id and entry.organization_id and entry.organization_id != organization_id:
-                continue
+            if organization_id:
+                if entry.organization_id != organization_id:
+                    continue
+            else:
+                if entry.organization_id is not None:
+                    continue
             try:
                 cached_vec = np.array(json.loads(entry.embedding_json), dtype=np.float32)
                 norm_c = np.linalg.norm(cached_vec)
@@ -124,7 +128,12 @@ def set_cached_response(
 
     db: Session = SessionLocal()
     try:
-        existing = db.query(ResponseCache).filter(ResponseCache.normalized_query == norm_query).first()
+        query_filter = db.query(ResponseCache).filter(ResponseCache.normalized_query == norm_query)
+        if organization_id:
+            query_filter = query_filter.filter(ResponseCache.organization_id == organization_id)
+        else:
+            query_filter = query_filter.filter(ResponseCache.organization_id.is_(None))
+        existing = query_filter.first()
         if existing:
             existing.answer = answer
             existing.sources_json = json.dumps(sources)

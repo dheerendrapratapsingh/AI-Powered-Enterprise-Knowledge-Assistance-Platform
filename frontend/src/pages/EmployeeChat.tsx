@@ -116,6 +116,9 @@ export function EmployeeChat() {
     return 'Good evening';
   };
 
+  const orgName = user?.organization?.name || (user?.email?.includes('srm') ? 'SRM University AP' : 'VIT-AP University');
+  const copilotName = orgName.toLowerCase().includes('srm') ? 'SRM Copilot' : `${orgName.split(' ')[0]} Copilot`;
+
   const handleLogout = () => {
     logout();
     window.location.href = '/';
@@ -385,8 +388,8 @@ export function EmployeeChat() {
                 <Bot size={18} color="#FFFFFF" />
               </div>
               <div className={styles.brandTitleText}>
-                <span className={styles.brandTitleMain}>VIT-AP Copilot</span>
-                <span className={styles.brandTitleSub}>Campus Intelligence</span>
+                <span className={styles.brandTitleMain}>{copilotName}</span>
+                <span className={styles.brandTitleSub}>{orgName}</span>
               </div>
             </div>
 
@@ -611,7 +614,7 @@ export function EmployeeChat() {
                 {getTimeGreeting()}, <span className="gradient-text-accent">{user?.name ? user.name.split(' ')[0] : 'Scholar'}</span>
               </h1>
               <p className={styles.welcomeSubtitle}>
-                Welcome to VIT-AP Copilot. Explore academic regulations, degree syllabi, hostel rules, or campus staff directories.
+                Welcome to {copilotName}. Explore academic regulations, degree syllabi, hostel rules, or campus staff directories.
               </p>
 
               <div className={styles.starterGrid}>
@@ -714,7 +717,7 @@ export function EmployeeChat() {
                           {msg.sources && msg.sources.length > 0 ? (
                             <div className={styles.aiModePillGrounded}>
                               <ShieldCheck size={12} />
-                              <span>VIT-AP Ground Truth RAG</span>
+                              <span>{orgName} Ground Truth RAG</span>
                             </div>
                           ) : (
                             <div className={styles.aiModePillConversational}>
@@ -892,7 +895,7 @@ export function EmployeeChat() {
           </div>
 
           <div className={styles.inputDisclaimer}>
-            Answers are grounded in official VIT-AP university documents
+            Answers are grounded in official {orgName} documents
           </div>
         </div>
       </div>
