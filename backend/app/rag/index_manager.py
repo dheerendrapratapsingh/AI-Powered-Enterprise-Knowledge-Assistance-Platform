@@ -29,10 +29,26 @@ class IndexManager:
             with open(self.metadata_path, 'r', encoding='utf-8') as f:
                 self.metadata = json.load(f)
             self._last_mtime = os.path.getmtime(self.index_path)
+
+            # Ensure index supports ID mapping (add_with_ids / remove_ids)
+            if not isinstance(self.index, (faiss.IndexIDMap, faiss.IndexIDMap2)):
+                base_idx = self.index
+                n = base_idx.ntotal
+                new_idx = faiss.IndexIDMap2(faiss.IndexFlatIP(self.dimension))
+                if n > 0:
+                    vecs = np.zeros((n, self.dimension), dtype='float32')
+                    for i in range(n):
+                        vecs[i] = base_idx.reconstruct(i)
+                    ids = np.array([int(k) for k in self.metadata.keys()][:n], dtype='int64')
+                    if len(ids) != n:
+                        ids = np.arange(n, dtype='int64')
+                    new_idx.add_with_ids(vecs, ids)
+                self.index = new_idx
+                self.save_index()
         else:
-            # Using IndexIDMap to allow deletion later if needed
-            base_index = faiss.IndexFlatIP(self.dimension) # Inner product for cosine similarity usually
-            self.index = faiss.IndexIDMap(base_index)
+            # Using IndexIDMap2 to allow addition and deletion with explicit IDs
+            base_index = faiss.IndexFlatIP(self.dimension)
+            self.index = faiss.IndexIDMap2(base_index)
             self.metadata = {} # dict mapping ID to metadata
 
     def save_index(self):

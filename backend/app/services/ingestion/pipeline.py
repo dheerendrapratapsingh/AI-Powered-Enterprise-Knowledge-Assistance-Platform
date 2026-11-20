@@ -79,6 +79,7 @@ class IngestionService:
             metadata_template = {
                 "document_id": doc.id,
                 "document_name": doc.name,
+                "organization_id": doc.organization_id,
                 "source_type": doc.source_type or "manual",
                 "source_url": doc.source_url or doc.name,
                 "category": doc.category or "General",
@@ -158,6 +159,7 @@ class IngestionService:
             metadata_template = {
                 "document_id": doc.id,
                 "document_name": doc.name,
+                "organization_id": doc.organization_id,
                 "source_type": doc.source_type or "crawler",
                 "source_url": doc.source_url or doc.name,
                 "category": doc.category or "Website",

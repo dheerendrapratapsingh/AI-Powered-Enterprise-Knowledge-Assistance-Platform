@@ -1,11 +1,12 @@
+import re
+import numpy as np
+import faiss
 from app.rag.embedder import generate_embedding
 from app.rag.index_manager import IndexManager
 from app.config import settings
 from app.database.connection import SessionLocal
 from app.models.document import Document
 from app.models.organization import Organization
-import numpy as np
-import faiss
 
 index_manager = IndexManager()
 

@@ -256,6 +256,7 @@ class WebsiteCrawler:
                             source_type="crawler",
                             source_url=current_url,
                             file_path=current_url,
+                            organization_id=self.config.organization_id,
                             category="Website Knowledge",
                             access_level="STUDENT",
                             status="INDEXING"
@@ -327,6 +328,7 @@ class WebsiteCrawler:
                                     filename=os.path.basename(staged_file),
                                     source_type="crawler",
                                     source_url=doc_url,
+                                    organization_id=self.config.organization_id,
                                     category="Institutional Documents",
                                     access_level="STUDENT",
                                     file_path=staged_file,

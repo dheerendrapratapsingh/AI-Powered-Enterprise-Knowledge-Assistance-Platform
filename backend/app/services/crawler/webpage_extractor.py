@@ -49,13 +49,16 @@ def extract_webpage_content(html: str, base_url: str) -> ExtractedWebPage:
     else:
         result.canonical_url = result.url
 
-    # 2. Page Title
-    if soup.title and soup.title.string:
+    # 2. Page Title with Intelligent Fallback (Avoids identical 'VIT-AP University' on every page)
+    h1_tag = soup.find("h1")
+    h1_text = h1_tag.get_text(strip=True) if h1_tag else ""
+    if h1_text and len(h1_text) > 3:
+        result.title = f"VIT-AP {h1_text}"
+    elif soup.title and soup.title.string and soup.title.string.strip() not in ("VIT-AP University", "VIT-AP"):
         result.title = soup.title.string.strip()
-    elif soup.h1:
-        result.title = soup.h1.get_text(strip=True)
     else:
-        result.title = result.url
+        path_name = urlparse(base_url).path.strip("/").replace("-", " ").title()
+        result.title = f"VIT-AP {path_name}" if path_name else "VIT-AP Official Page"
 
     # 3. Meta Description
     meta_desc = soup.find("meta", attrs={"name": lambda v: v and v.lower() == "description"})
